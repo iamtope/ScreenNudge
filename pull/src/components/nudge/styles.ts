@@ -1,0 +1,53 @@
+import { StyleSheet } from 'react-native';
+import { palette } from '@/src/theme/palette';
+
+/** Shared styling for nudge step components. */
+export const nudgeStyles = StyleSheet.create({
+  block: { flex: 1, gap: 14 },
+  hint: { color: palette.textMute, textAlign: 'center', fontSize: 15, lineHeight: 21 },
+  bigValue: { color: palette.brass, fontSize: 54, fontWeight: '800', textAlign: 'center' },
+  primary: {
+    borderRadius: 14,
+    backgroundColor: palette.brass,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  primaryDisabled: { opacity: 0.4 },
+  primaryLabel: { color: palette.bg, fontWeight: '700', fontSize: 16 },
+  secondary: {
+    borderRadius: 14,
+    backgroundColor: palette.surface,
+    borderWidth: 1,
+    borderColor: palette.line,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  secondaryLabel: { color: palette.text, fontWeight: '700', fontSize: 16, textAlign: 'center' },
+  error: { color: palette.danger, textAlign: 'center', fontSize: 14, lineHeight: 20 },
+  ghost: { alignItems: 'center', paddingVertical: 12 },
+  ghostLabel: { color: palette.textMute, fontSize: 14 },
+  input: {
+    borderWidth: 1,
+    borderColor: palette.line,
+    backgroundColor: palette.surface,
+    borderRadius: 12,
+    padding: 14,
+    color: palette.text,
+    fontSize: 22,
+    textAlign: 'center',
+  },
+  optionGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  option: {
+    width: '48%',
+    borderWidth: 1,
+    borderColor: palette.line,
+    borderRadius: 12,
+    backgroundColor: palette.surface,
+    paddingVertical: 12,
+    paddingHorizontal: 10,
+  },
+  optionWide: { width: '100%' },
+  optionActive: { borderColor: palette.brass, backgroundColor: palette.brassSoft },
+  optionText: { color: palette.textSoft, fontSize: 15, textAlign: 'center' },
+  optionTextActive: { color: palette.text },
+});

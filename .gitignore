@@ -1,0 +1,14 @@
+# OS
+.DS_Store
+**/.DS_Store
+
+# Vercel
+.vercel
+**/.vercel
+
+# Machine-specific Claude Code settings
+**/.claude/settings.local.json
+
+# Node (subprojects also ignore their own)
+node_modules/
+**/node_modules/

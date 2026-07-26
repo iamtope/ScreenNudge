@@ -1,0 +1,633 @@
+<title>pull — app mockups</title>
+<style>
+  :root {
+    --ink: #12101a;
+    --cream: #f4f1e9;
+    --brass: #d7c18e;
+    --brass-deep: #8a6a28;
+
+    /* page chrome (theme-aware) */
+    --chrome-bg: #f4f1e9;
+    --chrome-fg: #1a1712;
+    --chrome-mute: #6e6757;
+    --chrome-line: #d6cbb4;
+    --chrome-bar: rgba(244,241,233,.82);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --chrome-bg: #0b0b11;
+      --chrome-fg: #f5f5ff;
+      --chrome-mute: #8b8b95;
+      --chrome-line: #2c2c3d;
+      --chrome-bar: rgba(11,11,17,.82);
+    }
+  }
+  :root[data-theme="light"] {
+    --chrome-bg: #f4f1e9; --chrome-fg: #1a1712; --chrome-mute: #6e6757;
+    --chrome-line: #d6cbb4; --chrome-bar: rgba(244,241,233,.82);
+  }
+  :root[data-theme="dark"] {
+    --chrome-bg: #0b0b11; --chrome-fg: #f5f5ff; --chrome-mute: #8b8b95;
+    --chrome-line: #2c2c3d; --chrome-bar: rgba(11,11,17,.82);
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--chrome-bg);
+    color: var(--chrome-fg);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    * { animation: none !important; }
+  }
+
+  /* ---------- site header ---------- */
+  .siteheader {
+    position: sticky; top: 0; z-index: 40;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 16px;
+    padding: 14px clamp(18px, 5vw, 56px);
+    background: var(--chrome-bar);
+    backdrop-filter: saturate(1.4) blur(14px);
+    -webkit-backdrop-filter: saturate(1.4) blur(14px);
+    border-bottom: 1px solid var(--chrome-line);
+  }
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .brand .mark { width: 26px; height: 26px; display: block; }
+  .brand .word { font-size: 21px; font-weight: 800; letter-spacing: -0.5px; }
+  .navlinks { display: flex; gap: 22px; font-size: 14px; color: var(--chrome-mute); }
+  .navlinks a { color: inherit; text-decoration: none; }
+  .navlinks a:hover { color: var(--chrome-fg); }
+  .navlinks a:focus-visible { outline: 2px solid var(--brass-deep); outline-offset: 3px; border-radius: 4px; }
+  .getbtn {
+    font-size: 14px; font-weight: 700; text-decoration: none;
+    color: var(--chrome-bg); background: var(--chrome-fg);
+    padding: 9px 16px; border-radius: 999px; white-space: nowrap;
+  }
+  @media (max-width: 620px) { .navlinks { display: none; } }
+
+  /* ---------- panels ---------- */
+  .panel {
+    position: relative;
+    display: grid;
+    grid-template-columns: 1.05fr 0.95fr;
+    align-items: center;
+    gap: clamp(24px, 5vw, 72px);
+    padding: clamp(52px, 9vh, 116px) clamp(20px, 6vw, 92px);
+    overflow: hidden;
+  }
+  .panel__copy { max-width: 30ch; }
+  .panel--flip .panel__stage { order: -1; }
+  @media (max-width: 900px) {
+    .panel { grid-template-columns: 1fr; justify-items: center; text-align: center; gap: 40px; }
+    .panel__copy { max-width: 34ch; }
+    .panel--flip .panel__stage { order: 0; }
+  }
+
+  .eyebrow {
+    font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 2.4px;
+    margin: 0 0 18px; opacity: .8;
+  }
+  .headline {
+    font-size: clamp(34px, 5.2vw, 58px);
+    line-height: 1.02; font-weight: 800; letter-spacing: -1.4px;
+    margin: 0; text-wrap: balance;
+  }
+  .headline em { font-style: italic; font-weight: 700; }
+  .subhead {
+    font-size: clamp(16px, 1.5vw, 19px); line-height: 1.5;
+    margin: 20px 0 0; opacity: .85; text-wrap: pretty;
+  }
+  .metrow { display: flex; gap: 30px; margin-top: 30px; }
+  .panel--dark .metrow, .panel--light .metrow { flex-wrap: wrap; }
+  @media (max-width: 900px) { .metrow { justify-content: center; } }
+  .met b { display: block; font-size: 28px; font-weight: 800; letter-spacing: -0.5px; }
+  .met span { font-size: 12.5px; text-transform: uppercase; letter-spacing: 1.4px; opacity: .7; }
+
+  .panel__stage { display: flex; justify-content: center; align-items: center; position: relative; }
+
+  /* panel color worlds (committed; identical in both viewer themes by design) */
+  .panel--ink   { background: radial-gradient(120% 120% at 78% 8%, #211a2e 0%, #12101a 52%, #0c0a12 100%); color: #f4f1ea; }
+  .panel--brass { background: radial-gradient(120% 130% at 22% 10%, #2c2113 0%, #201810 55%, #14100a 100%); color: #f3ead6; }
+  .panel--cream { background: linear-gradient(168deg, #f7f3ea 0%, #efe7d6 100%); color: #1a1712; }
+  .panel--cream2 { background: linear-gradient(168deg, #f2ece0 0%, #e9e0cd 100%); color: #1a1712; }
+  .panel--ink .eyebrow, .panel--brass .eyebrow { color: var(--brass); }
+  .panel--ink .headline em, .panel--brass .headline em { color: var(--brass); }
+  .panel--cream .eyebrow, .panel--cream2 .eyebrow { color: var(--brass-deep); }
+  .panel--cream .headline em, .panel--cream2 .headline em { color: var(--brass-deep); }
+
+  /* soft glow behind phone */
+  .panel__stage::before {
+    content: ""; position: absolute; width: 78%; aspect-ratio: 1; border-radius: 50%;
+    filter: blur(60px); opacity: .5; z-index: 0;
+  }
+  .panel--ink .panel__stage::before   { background: radial-gradient(circle, rgba(215,193,142,.28), transparent 70%); }
+  .panel--brass .panel__stage::before { background: radial-gradient(circle, rgba(215,193,142,.34), transparent 70%); }
+  .panel--cream .panel__stage::before, .panel--cream2 .panel__stage::before { background: radial-gradient(circle, rgba(138,106,40,.16), transparent 70%); }
+
+  /* ---------- phone frame ---------- */
+  .phone {
+    position: relative; z-index: 1;
+    width: clamp(248px, 30vw, 304px);
+    aspect-ratio: 304 / 630;
+    background: linear-gradient(150deg, #3a3a40, #17171b 42%, #0b0b0d);
+    border-radius: 15% / 7.4%;
+    padding: 11px;
+    box-shadow:
+      0 2px 3px rgba(0,0,0,.6),
+      0 30px 60px -18px rgba(0,0,0,.55),
+      0 60px 120px -40px rgba(0,0,0,.5),
+      inset 0 0 0 1.5px rgba(255,255,255,.08);
+  }
+  .phone::after { /* side buttons hint */
+    content: ""; position: absolute; left: -2px; top: 26%; width: 2px; height: 8%;
+    background: #2a2a30; border-radius: 2px;
+    box-shadow: 0 3.4% 0 #2a2a30, 0 8.4% 0 #2a2a30;
+  }
+  .screen {
+    position: relative; height: 100%; width: 100%;
+    border-radius: 12% / 6%;
+    overflow: hidden; display: flex; flex-direction: column;
+    background: var(--s-bg);
+    color: var(--s-text);
+    font-size: 13px;
+  }
+  .island {
+    position: absolute; top: 9px; left: 50%; transform: translateX(-50%);
+    width: 33%; height: 4.4%; min-height: 22px; background: #000; border-radius: 99px; z-index: 8;
+  }
+  .statusbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 11px 20px 0; font-size: 12.5px; font-weight: 600; color: var(--s-text);
+  }
+  .statusbar .sb-icons { display: flex; align-items: center; gap: 5px; }
+  .statusbar svg { display: block; }
+  .screenbody { flex: 1; overflow: hidden; padding: 8px 15px 15px; display: flex; flex-direction: column; gap: 10px; }
+
+  /* screen theme tokens */
+  .screen--dark {
+    --s-bg:#0b0b11; --s-surface:#16161f; --s-surface2:#20202c; --s-line:#2c2c3d;
+    --s-text:#f5f5ff; --s-mute:#8b8b95; --s-soft:#b1b1bc;
+    --s-brass:#d7c18e; --s-brass-soft:rgba(215,193,142,.09);
+    --s-green:#57b98a; --s-rose:#e0738f;
+  }
+  .screen--light {
+    --s-bg:#f4f1e9; --s-surface:#ffffff; --s-surface2:#ece4d4; --s-line:#d6cbb4;
+    --s-text:#1a1712; --s-mute:#6e6757; --s-soft:#544f45;
+    --s-brass:#8a6a28; --s-brass-soft:rgba(138,106,40,.10);
+    --s-green:#2f7d57; --s-rose:#b14e68;
+  }
+
+  /* in-screen shared bits */
+  .s-eyebrow { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.8px; color: var(--s-mute); margin: 0; }
+  .s-eyebrow.brass { color: var(--s-brass); letter-spacing: 2px; }
+  .s-title { font-size: 26px; font-weight: 800; letter-spacing: -0.8px; line-height: 1.05; margin: 4px 0 0; color: var(--s-text); }
+  .s-title em { font-style: italic; color: var(--s-brass); font-weight: 700; }
+  .s-cog { width: 30px; height: 30px; border: 1px solid var(--s-line); border-radius: 9px; display: flex; align-items: center; justify-content: center; color: var(--s-soft); }
+  .rowbetween { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+  .avatar { border-radius: 50%; background: #7a8a9a; color: #fff; font-weight: 800; display: flex; align-items: center; justify-content: center; flex: none; }
+
+  /* ---------- features strip ---------- */
+  .features {
+    padding: clamp(56px, 9vh, 104px) clamp(20px, 6vw, 92px);
+    background: var(--chrome-bg); color: var(--chrome-fg);
+    border-top: 1px solid var(--chrome-line);
+  }
+  .features h2 { font-size: clamp(28px, 4vw, 44px); font-weight: 800; letter-spacing: -1px; margin: 0 auto; max-width: 18ch; text-align: center; text-wrap: balance; }
+  .features h2 em { font-style: italic; color: var(--brass-deep); }
+  @media (prefers-color-scheme: dark) { .features h2 em { color: var(--brass); } }
+  :root[data-theme="dark"] .features h2 em { color: var(--brass); }
+  :root[data-theme="light"] .features h2 em { color: var(--brass-deep); }
+  .featgrid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px;
+    max-width: 1040px; margin: 46px auto 0;
+  }
+  @media (max-width: 860px) { .featgrid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 460px) { .featgrid { grid-template-columns: 1fr; } }
+  .feat {
+    border: 1px solid var(--chrome-line); border-radius: 18px; padding: 22px;
+    background: color-mix(in srgb, var(--chrome-fg) 3%, transparent);
+  }
+  .feat .fic { width: 42px; height: 42px; border-radius: 12px; display: flex; align-items: center; justify-content: center;
+    background: color-mix(in srgb, var(--brass-deep) 14%, transparent); color: var(--brass-deep); margin-bottom: 14px; }
+  @media (prefers-color-scheme: dark) { .feat .fic { color: var(--brass); background: rgba(215,193,142,.12); } }
+  :root[data-theme="dark"] .feat .fic { color: var(--brass); background: rgba(215,193,142,.12); }
+  :root[data-theme="light"] .feat .fic { color: var(--brass-deep); background: color-mix(in srgb, var(--brass-deep) 14%, transparent); }
+  .feat h3 { margin: 0 0 6px; font-size: 17px; font-weight: 800; letter-spacing: -0.3px; }
+  .feat p { margin: 0; font-size: 14px; line-height: 1.5; color: var(--chrome-mute); }
+
+  /* ---------- footer ---------- */
+  .foot {
+    padding: clamp(40px, 7vh, 72px) clamp(20px, 6vw, 92px);
+    background: var(--ink); color: #f4f1ea;
+    display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center;
+  }
+  .foot .brand .word { color: #f4f1ea; }
+  .foot p { margin: 0; max-width: 40ch; line-height: 1.5; opacity: .8; font-size: 15px; }
+  .foot small { opacity: .5; font-size: 12.5px; letter-spacing: .3px; }
+
+  .util-note {
+    max-width: 1040px; margin: 0 auto; padding: 22px clamp(20px,6vw,92px) 0;
+    font-size: 13px; color: var(--chrome-mute); text-align: center; line-height: 1.5;
+  }
+
+  /* progress bar for leaderboard */
+  .bartrack { height: 4px; border-radius: 99px; background: var(--s-surface2); overflow: hidden; margin-top: 6px; }
+  .barfill { height: 100%; border-radius: 99px; background: var(--s-brass); }
+</style>
+
+<header class="siteheader">
+  <div class="brand">
+    <svg class="mark" viewBox="0 0 100 100" aria-hidden="true">
+      <path d="M20 76 L50 32 L80 76" fill="none" stroke="#8a6a28" stroke-width="15" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <span class="word">pull</span>
+  </div>
+  <nav class="navlinks" aria-label="Sections">
+    <a href="#pause">The pause</a>
+    <a href="#guard">Guard</a>
+    <a href="#circle">Circle</a>
+    <a href="#insights">Insights</a>
+  </nav>
+  <a class="getbtn" href="#get">Get pull</a>
+</header>
+
+<!-- ============ PANEL 1 · HERO / THE PAUSE ============ -->
+<section class="panel panel--ink" id="pause">
+  <div class="panel__copy">
+    <p class="eyebrow">Screen time, without the willpower</p>
+    <h1 class="headline">Put a breath between you and the <em>scroll.</em></h1>
+    <p class="subhead">pull guards the apps that pull you in — then gives you one calm moment to choose again before doomscrolling takes over.</p>
+    <div class="metrow">
+      <div class="met"><b>0.5s</b><span>to pause</span></div>
+      <div class="met"><b>82%</b><span>avg resist rate</span></div>
+      <div class="met"><b>3h 40m</b><span>won back / wk</span></div>
+    </div>
+  </div>
+  <div class="panel__stage">
+    <div class="phone">
+      <div class="screen screen--dark">
+        <div class="island"></div>
+        <div class="statusbar">
+          <span>9:41</span>
+          <span class="sb-icons">
+            <svg width="17" height="11" viewBox="0 0 17 11" fill="currentColor"><rect x="0" y="7" width="3" height="4" rx="1"/><rect x="4.5" y="5" width="3" height="6" rx="1"/><rect x="9" y="2.5" width="3" height="8.5" rx="1"/><rect x="13.5" y="0" width="3" height="11" rx="1"/></svg>
+            <svg width="16" height="11" viewBox="0 0 16 12" fill="currentColor"><path d="M8 2.2c2.4 0 4.6.9 6.2 2.5l1.4-1.5A11 11 0 0 0 8 0 11 11 0 0 0 .4 3.2l1.4 1.5A8.7 8.7 0 0 1 8 2.2Z"/><path d="M8 6c1.3 0 2.5.5 3.4 1.4l1.4-1.5A7 7 0 0 0 8 3.9a7 7 0 0 0-4.8 2l1.4 1.5A4.8 4.8 0 0 1 8 6Z"/><circle cx="8" cy="10" r="1.8"/></svg>
+            <svg width="25" height="12" viewBox="0 0 25 12" fill="none"><rect x="0.5" y="0.5" width="21" height="11" rx="3" stroke="currentColor" opacity=".5"/><rect x="2" y="2" width="16.5" height="8" rx="1.6" fill="currentColor"/><rect x="23" y="3.5" width="1.6" height="5" rx="0.8" fill="currentColor" opacity=".5"/></svg>
+          </span>
+        </div>
+        <div class="screenbody">
+          <div class="rowbetween">
+            <p class="s-eyebrow brass">Second attempt</p>
+            <span style="color:var(--s-mute);font-size:11px;letter-spacing:1px;">2 / 3</span>
+          </div>
+          <p class="s-eyebrow" style="margin-top:-4px;">Balanced · Breathe</p>
+          <h2 class="s-title">Unlock <em>Instagram?</em></h2>
+
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:6px 0;">
+            <p style="margin:0;color:var(--s-soft);font-size:12.5px;text-align:center;max-width:22ch;">Breathe with the circle. Let the urge settle.</p>
+            <div class="breathe-ring">
+              <span>4</span>
+            </div>
+          </div>
+
+          <button style="width:100%;border:none;background:var(--s-brass);color:var(--s-bg);font-weight:800;font-size:14px;padding:13px;border-radius:99px;">Breathe… 4s</button>
+          <p style="margin:2px auto 0;color:var(--s-mute);font-size:12px;text-decoration:underline;">I'll stay off</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PANEL 2 · GUARD / HOME ============ -->
+<section class="panel panel--cream panel--flip" id="guard">
+  <div class="panel__copy">
+    <p class="eyebrow">Choose your targets</p>
+    <h1 class="headline">Guard the two apps that eat your <em>evening.</em></h1>
+    <p class="subhead">Set a daily budget and a number of opens. When you reach for a guarded app, pull is already there — counting every attempt.</p>
+  </div>
+  <div class="panel__stage">
+    <div class="phone">
+      <div class="screen screen--light">
+        <div class="island"></div>
+        <div class="statusbar">
+          <span>9:41</span>
+          <span class="sb-icons">
+            <svg width="17" height="11" viewBox="0 0 17 11" fill="currentColor"><rect x="0" y="7" width="3" height="4" rx="1"/><rect x="4.5" y="5" width="3" height="6" rx="1"/><rect x="9" y="2.5" width="3" height="8.5" rx="1"/><rect x="13.5" y="0" width="3" height="11" rx="1"/></svg>
+            <svg width="16" height="11" viewBox="0 0 16 12" fill="currentColor"><path d="M8 2.2c2.4 0 4.6.9 6.2 2.5l1.4-1.5A11 11 0 0 0 8 0 11 11 0 0 0 .4 3.2l1.4 1.5A8.7 8.7 0 0 1 8 2.2Z"/><path d="M8 6c1.3 0 2.5.5 3.4 1.4l1.4-1.5A7 7 0 0 0 8 3.9a7 7 0 0 0-4.8 2l1.4 1.5A4.8 4.8 0 0 1 8 6Z"/><circle cx="8" cy="10" r="1.8"/></svg>
+            <svg width="25" height="12" viewBox="0 0 25 12" fill="none"><rect x="0.5" y="0.5" width="21" height="11" rx="3" stroke="currentColor" opacity=".5"/><rect x="2" y="2" width="16.5" height="8" rx="1.6" fill="currentColor"/><rect x="23" y="3.5" width="1.6" height="5" rx="0.8" fill="currentColor" opacity=".5"/></svg>
+          </span>
+        </div>
+        <div class="screenbody">
+          <div class="rowbetween">
+            <div>
+              <p class="s-eyebrow">Tuesday · 14 Jul</p>
+              <h2 class="s-title" style="font-size:30px;margin-top:6px;">Hello, <em>Alex</em>.</h2>
+            </div>
+            <div class="s-cog" aria-hidden="true">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>
+            </div>
+          </div>
+
+          <div style="margin-top:2px;">
+            <p class="s-eyebrow">Attempts today</p>
+            <div style="display:flex;align-items:flex-end;gap:10px;margin-top:2px;">
+              <span style="font-size:56px;font-weight:800;line-height:0.9;letter-spacing:-2px;">3</span>
+              <span style="color:var(--s-soft);font-size:12.5px;padding-bottom:6px;">times you<br>reached the pause</span>
+            </div>
+          </div>
+
+          <div style="border:1px solid var(--s-line);background:var(--s-surface);border-radius:16px;padding:12px;">
+            <p class="s-eyebrow" style="margin-bottom:9px;">Guarded apps · 2 of 2</p>
+            <div style="display:flex;align-items:center;gap:9px;padding:6px 0;">
+              <span style="width:30px;height:30px;border-radius:9px;background:var(--s-surface2);display:flex;align-items:center;justify-content:center;font-weight:800;color:var(--s-soft);">IG</span>
+              <div style="flex:1;"><div style="font-weight:700;">Instagram</div><div style="color:var(--s-mute);font-size:11.5px;">30m/day · 8 opens · Balanced</div></div>
+            </div>
+            <div style="height:1px;background:var(--s-line);margin:4px 0;"></div>
+            <div style="display:flex;align-items:center;gap:9px;padding:6px 0;">
+              <span style="width:30px;height:30px;border-radius:9px;background:var(--s-surface2);display:flex;align-items:center;justify-content:center;font-weight:800;color:var(--s-soft);">TT</span>
+              <div style="flex:1;"><div style="font-weight:700;">TikTok</div><div style="color:var(--s-mute);font-size:11.5px;">20m/day · 6 opens · Strong</div></div>
+            </div>
+          </div>
+
+          <div style="border:1px solid var(--s-brass);background:var(--s-brass-soft);border-radius:16px;padding:12px;">
+            <span style="display:inline-block;background:var(--s-surface);color:var(--s-brass);font-size:9.5px;text-transform:uppercase;letter-spacing:1px;padding:3px 8px;border-radius:99px;font-weight:700;">Wind-Down</span>
+            <div style="font-weight:800;font-size:19px;margin-top:6px;">10:30 PM – 7:00 AM</div>
+            <div style="color:var(--s-soft);font-size:12px;">Guarded apps auto-block overnight</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PANEL 3 · CIRCLE / LEADERBOARD ============ -->
+<section class="panel panel--brass" id="circle">
+  <div class="panel__copy">
+    <p class="eyebrow">Your circle</p>
+    <h1 class="headline">Make it a friendly <em>race.</em></h1>
+    <p class="subhead">Every resisted urge and every focused minute earns points. See who's heads-down right now — and let your circle keep you honest.</p>
+    <div class="metrow">
+      <div class="met"><b>+5 pts</b><span>per resist</span></div>
+      <div class="met"><b>Live</b><span>focusing status</span></div>
+    </div>
+  </div>
+  <div class="panel__stage">
+    <div class="phone">
+      <div class="screen screen--dark">
+        <div class="island"></div>
+        <div class="statusbar">
+          <span>9:41</span>
+          <span class="sb-icons">
+            <svg width="17" height="11" viewBox="0 0 17 11" fill="currentColor"><rect x="0" y="7" width="3" height="4" rx="1"/><rect x="4.5" y="5" width="3" height="6" rx="1"/><rect x="9" y="2.5" width="3" height="8.5" rx="1"/><rect x="13.5" y="0" width="3" height="11" rx="1"/></svg>
+            <svg width="16" height="11" viewBox="0 0 16 12" fill="currentColor"><path d="M8 2.2c2.4 0 4.6.9 6.2 2.5l1.4-1.5A11 11 0 0 0 8 0 11 11 0 0 0 .4 3.2l1.4 1.5A8.7 8.7 0 0 1 8 2.2Z"/><path d="M8 6c1.3 0 2.5.5 3.4 1.4l1.4-1.5A7 7 0 0 0 8 3.9a7 7 0 0 0-4.8 2l1.4 1.5A4.8 4.8 0 0 1 8 6Z"/><circle cx="8" cy="10" r="1.8"/></svg>
+            <svg width="25" height="12" viewBox="0 0 25 12" fill="none"><rect x="0.5" y="0.5" width="21" height="11" rx="3" stroke="currentColor" opacity=".5"/><rect x="2" y="2" width="16.5" height="8" rx="1.6" fill="currentColor"/><rect x="23" y="3.5" width="1.6" height="5" rx="0.8" fill="currentColor" opacity=".5"/></svg>
+          </span>
+        </div>
+        <div class="screenbody">
+          <p class="s-eyebrow">Your circle</p>
+          <h2 class="s-title">The race <em>this week.</em></h2>
+
+          <div style="display:flex;gap:6px;margin:2px 0 2px;">
+            <span style="flex:1;text-align:center;font-size:11.5px;color:var(--s-mute);padding:7px;border:1px solid var(--s-line);border-radius:99px;">Today</span>
+            <span style="flex:1;text-align:center;font-size:11.5px;color:var(--s-text);padding:7px;border:1px solid var(--s-line);border-radius:99px;background:var(--s-surface2);">This week</span>
+            <span style="flex:1;text-align:center;font-size:11.5px;color:var(--s-mute);padding:7px;border:1px solid var(--s-line);border-radius:99px;">All</span>
+          </div>
+
+          <!-- rank 1 -->
+          <div style="display:flex;align-items:center;gap:9px;background:var(--s-surface);border:1px solid var(--s-line);border-radius:13px;padding:10px;">
+            <span style="width:18px;text-align:center;color:var(--s-brass);">♛</span>
+            <span class="avatar" style="width:32px;height:32px;font-size:13px;background:#c96f8a;">M</span>
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:14px;">Maya</div>
+              <div style="display:flex;align-items:center;gap:5px;margin-top:2px;"><span style="width:6px;height:6px;border-radius:99px;background:var(--s-green);"></span><span style="color:var(--s-green);font-size:11.5px;font-weight:700;">Focusing now</span></div>
+              <div class="bartrack"><div class="barfill" style="width:100%;"></div></div>
+            </div>
+            <span style="font-weight:800;font-size:15px;">312<span style="color:var(--s-mute);font-size:11px;font-weight:600;"> pts</span></span>
+          </div>
+
+          <!-- rank 2 · you -->
+          <div style="display:flex;align-items:center;gap:9px;background:var(--s-brass-soft);border:1px solid var(--s-brass);border-radius:13px;padding:10px;">
+            <span style="width:18px;text-align:center;color:#c7ccd6;">🥈</span>
+            <span class="avatar" style="width:32px;height:32px;font-size:13px;background:#7a8a9a;">A</span>
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:14px;">Alex <span style="color:var(--s-brass);">· you</span></div>
+              <div style="color:var(--s-mute);font-size:11.5px;margin-top:1px;">5 resists · 3h 20m</div>
+              <div class="bartrack"><div class="barfill" style="width:92%;"></div></div>
+            </div>
+            <span style="font-weight:800;font-size:15px;">287<span style="color:var(--s-mute);font-size:11px;font-weight:600;"> pts</span></span>
+          </div>
+
+          <!-- rank 3 -->
+          <div style="display:flex;align-items:center;gap:9px;background:var(--s-surface);border:1px solid var(--s-line);border-radius:13px;padding:10px;">
+            <span style="width:18px;text-align:center;color:#cd9b6a;">🥉</span>
+            <span class="avatar" style="width:32px;height:32px;font-size:13px;background:#5a8f7b;">S</span>
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:14px;">Sam</div>
+              <div style="color:var(--s-mute);font-size:11.5px;margin-top:1px;">3 resists · 2h 45m</div>
+              <div class="bartrack"><div class="barfill" style="width:77%;"></div></div>
+            </div>
+            <span style="font-weight:800;font-size:15px;">240<span style="color:var(--s-mute);font-size:11px;font-weight:600;"> pts</span></span>
+          </div>
+
+          <!-- rank 4 · pacer -->
+          <div style="display:flex;align-items:center;gap:9px;background:var(--s-surface);border:1px solid var(--s-line);border-radius:13px;padding:10px;">
+            <span style="width:18px;text-align:center;color:var(--s-mute);font-weight:700;">4</span>
+            <span class="avatar" style="width:32px;height:32px;font-size:14px;background:rgba(215,193,142,.18);color:var(--s-brass);">✦</span>
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:14px;">Nova <span style="color:var(--s-brass);">· pacer</span></div>
+              <div style="color:var(--s-mute);font-size:11.5px;margin-top:1px;">2 resists · 2h 10m</div>
+              <div class="bartrack"><div class="barfill" style="width:63%;"></div></div>
+            </div>
+            <span style="font-weight:800;font-size:15px;">198<span style="color:var(--s-mute);font-size:11px;font-weight:600;"> pts</span></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PANEL 4 · FOCUS ============ -->
+<section class="panel panel--cream2 panel--flip" id="focus">
+  <div class="panel__copy">
+    <p class="eyebrow">Focus room</p>
+    <h1 class="headline">Focus together, even <em>apart.</em></h1>
+    <p class="subhead">Start a timer and your guarded apps lock for the session. See who else in your circle is heads-down right now — company makes it stick.</p>
+  </div>
+  <div class="panel__stage">
+    <div class="phone">
+      <div class="screen screen--dark">
+        <div class="island"></div>
+        <div class="statusbar">
+          <span>9:41</span>
+          <span class="sb-icons">
+            <svg width="17" height="11" viewBox="0 0 17 11" fill="currentColor"><rect x="0" y="7" width="3" height="4" rx="1"/><rect x="4.5" y="5" width="3" height="6" rx="1"/><rect x="9" y="2.5" width="3" height="8.5" rx="1"/><rect x="13.5" y="0" width="3" height="11" rx="1"/></svg>
+            <svg width="16" height="11" viewBox="0 0 16 12" fill="currentColor"><path d="M8 2.2c2.4 0 4.6.9 6.2 2.5l1.4-1.5A11 11 0 0 0 8 0 11 11 0 0 0 .4 3.2l1.4 1.5A8.7 8.7 0 0 1 8 2.2Z"/><path d="M8 6c1.3 0 2.5.5 3.4 1.4l1.4-1.5A7 7 0 0 0 8 3.9a7 7 0 0 0-4.8 2l1.4 1.5A4.8 4.8 0 0 1 8 6Z"/><circle cx="8" cy="10" r="1.8"/></svg>
+            <svg width="25" height="12" viewBox="0 0 25 12" fill="none"><rect x="0.5" y="0.5" width="21" height="11" rx="3" stroke="currentColor" opacity=".5"/><rect x="2" y="2" width="16.5" height="8" rx="1.6" fill="currentColor"/><rect x="23" y="3.5" width="1.6" height="5" rx="0.8" fill="currentColor" opacity=".5"/></svg>
+          </span>
+        </div>
+        <div class="screenbody">
+          <p class="s-eyebrow">Focus room</p>
+          <h2 class="s-title">3 <em>focusing now.</em></h2>
+
+          <div style="border:1px solid var(--s-brass);background:var(--s-brass-soft);border-radius:16px;padding:14px 12px;display:flex;flex-direction:column;align-items:center;gap:12px;">
+            <div style="width:120px;height:120px;border-radius:50%;border:1px solid var(--s-brass);display:flex;align-items:center;justify-content:center;">
+              <div style="width:86px;height:86px;border-radius:50%;border:1px solid var(--s-brass);display:flex;align-items:center;justify-content:center;">
+                <span style="font-size:24px;font-weight:800;letter-spacing:-0.5px;">24:12</span>
+              </div>
+            </div>
+            <button style="border:none;background:var(--s-brass);color:var(--s-bg);font-weight:800;font-size:13px;padding:9px 22px;border-radius:99px;">End focus</button>
+            <span style="color:var(--s-mute);font-size:10.5px;text-transform:uppercase;letter-spacing:1.5px;">In focus</span>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:9px;background:var(--s-surface);border:1px solid var(--s-line);border-radius:13px;padding:10px;">
+            <span class="avatar" style="width:32px;height:32px;font-size:13px;background:#c96f8a;">M</span>
+            <div style="flex:1;"><div style="font-size:14px;">Maya</div><div style="color:var(--s-mute);font-size:11.5px;">12 min in</div></div>
+            <span style="color:var(--s-green);font-size:10.5px;text-transform:uppercase;letter-spacing:1.2px;">Focus</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:9px;background:var(--s-surface);border:1px solid var(--s-line);border-radius:13px;padding:10px;">
+            <span class="avatar" style="width:32px;height:32px;font-size:14px;background:rgba(215,193,142,.18);color:var(--s-brass);">✦</span>
+            <div style="flex:1;"><div style="font-size:14px;">Nova <span style="color:var(--s-brass);">· pacer</span></div><div style="color:var(--s-mute);font-size:11.5px;">41 min in</div></div>
+            <span style="color:var(--s-green);font-size:10.5px;text-transform:uppercase;letter-spacing:1.2px;">Focus</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PANEL 5 · INSIGHTS ============ -->
+<section class="panel panel--ink" id="insights">
+  <div class="panel__copy">
+    <p class="eyebrow">Insights</p>
+    <h1 class="headline">See what your <em>attention shows.</em></h1>
+    <p class="subhead">Your resist rate, your peak-pressure hours, and the exact time you've won back — turned into a streak worth keeping.</p>
+  </div>
+  <div class="panel__stage">
+    <div class="phone">
+      <div class="screen screen--light">
+        <div class="island"></div>
+        <div class="statusbar">
+          <span>9:41</span>
+          <span class="sb-icons">
+            <svg width="17" height="11" viewBox="0 0 17 11" fill="currentColor"><rect x="0" y="7" width="3" height="4" rx="1"/><rect x="4.5" y="5" width="3" height="6" rx="1"/><rect x="9" y="2.5" width="3" height="8.5" rx="1"/><rect x="13.5" y="0" width="3" height="11" rx="1"/></svg>
+            <svg width="16" height="11" viewBox="0 0 16 12" fill="currentColor"><path d="M8 2.2c2.4 0 4.6.9 6.2 2.5l1.4-1.5A11 11 0 0 0 8 0 11 11 0 0 0 .4 3.2l1.4 1.5A8.7 8.7 0 0 1 8 2.2Z"/><path d="M8 6c1.3 0 2.5.5 3.4 1.4l1.4-1.5A7 7 0 0 0 8 3.9a7 7 0 0 0-4.8 2l1.4 1.5A4.8 4.8 0 0 1 8 6Z"/><circle cx="8" cy="10" r="1.8"/></svg>
+            <svg width="25" height="12" viewBox="0 0 25 12" fill="none"><rect x="0.5" y="0.5" width="21" height="11" rx="3" stroke="currentColor" opacity=".5"/><rect x="2" y="2" width="16.5" height="8" rx="1.6" fill="currentColor"/><rect x="23" y="3.5" width="1.6" height="5" rx="0.8" fill="currentColor" opacity=".5"/></svg>
+          </span>
+        </div>
+        <div class="screenbody">
+          <p class="s-eyebrow">Today</p>
+          <h2 class="s-title">What your <em>attention shows.</em></h2>
+
+          <div style="display:flex;justify-content:space-between;align-items:center;border:1px solid var(--s-brass);background:var(--s-brass-soft);border-radius:15px;padding:14px;">
+            <div>
+              <p class="s-eyebrow" style="margin-bottom:2px;">Resist rate</p>
+              <div style="font-size:40px;font-weight:800;line-height:1;letter-spacing:-1px;">82%</div>
+              <div style="color:var(--s-soft);font-size:12px;margin-top:3px;">14 resisted · 3 opened</div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:4px;border:1px solid var(--s-green);border-radius:13px;padding:11px 13px;">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2f7d57" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></svg>
+              <span style="color:var(--s-green);font-size:12px;font-weight:800;">Strong</span>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:8px;">
+            <div style="flex:1;border:1px solid var(--s-line);background:var(--s-surface);border-radius:12px;padding:10px;">
+              <div class="s-eyebrow">Attempts</div><div style="font-size:26px;font-weight:800;">17</div>
+            </div>
+            <div style="flex:1;border:1px solid var(--s-line);background:var(--s-surface);border-radius:12px;padding:10px;">
+              <div class="s-eyebrow">Resists</div><div style="font-size:26px;font-weight:800;">14</div>
+            </div>
+            <div style="flex:1;border:1px solid var(--s-line);background:var(--s-surface);border-radius:12px;padding:10px;">
+              <div class="s-eyebrow">Saved</div><div style="font-size:26px;font-weight:800;">3h</div>
+            </div>
+          </div>
+
+          <div style="border:1px solid var(--s-line);background:var(--s-surface);border-radius:14px;padding:12px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+              <span style="font-weight:800;font-size:15px;">Last 7 days</span>
+              <span style="display:flex;gap:9px;font-size:10px;color:var(--s-mute);">
+                <span style="display:flex;align-items:center;gap:4px;"><span style="width:6px;height:6px;border-radius:99px;background:var(--s-rose);"></span>Attempts</span>
+                <span style="display:flex;align-items:center;gap:4px;"><span style="width:6px;height:6px;border-radius:99px;background:var(--s-green);"></span>Resists</span>
+              </span>
+            </div>
+            <div style="height:80px;display:flex;align-items:flex-end;gap:7px;">
+              <!-- each column: rose (attempts) with green (resists) overlay -->
+              <div class="bcol"><div class="brose" style="height:52px;"><div class="bgrn" style="height:40px;"></div></div><span>M</span></div>
+              <div class="bcol"><div class="brose" style="height:70px;"><div class="bgrn" style="height:60px;"></div></div><span>T</span></div>
+              <div class="bcol"><div class="brose" style="height:44px;"><div class="bgrn" style="height:38px;"></div></div><span>W</span></div>
+              <div class="bcol"><div class="brose" style="height:60px;"><div class="bgrn" style="height:46px;"></div></div><span>T</span></div>
+              <div class="bcol"><div class="brose" style="height:36px;"><div class="bgrn" style="height:33px;"></div></div><span>F</span></div>
+              <div class="bcol"><div class="brose" style="height:66px;"><div class="bgrn" style="height:58px;"></div></div><span>S</span></div>
+              <div class="bcol"><div class="brose" style="height:50px;"><div class="bgrn" style="height:44px;"></div></div><span>S</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FEATURES ============ -->
+<section class="features" id="get">
+  <h2>One calm system for the apps that <em>never let go.</em></h2>
+  <div class="featgrid">
+    <div class="feat">
+      <div class="fic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div>
+      <h3>The pause</h3>
+      <p>Breathe, take a few steps, or solve a quick challenge before a guarded app opens.</p>
+    </div>
+    <div class="feat">
+      <div class="fic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/></svg></div>
+      <h3>Wind-Down</h3>
+      <p>Guarded apps block themselves automatically while you sleep. Set it once.</p>
+    </div>
+    <div class="feat">
+      <div class="fic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13A4 4 0 0 1 16 11"/></svg></div>
+      <h3>Circle leaderboard</h3>
+      <p>Resist urges and stack focus minutes to climb a friendly weekly race with friends.</p>
+    </div>
+    <div class="feat">
+      <div class="fic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 14l3-4 3 3 4-6"/></svg></div>
+      <h3>Attention insights</h3>
+      <p>Resist rate, peak-pressure hours, and the real time you've won back — week over week.</p>
+    </div>
+  </div>
+  <p class="util-note">These are marketing mockups of the pull app, built from the app's live screens and brand palette. Each panel is sized to be captured on its own — scroll to the one you want and screenshot it for the website or App Store, or lift the HTML/CSS directly.</p>
+</section>
+
+<!-- ============ FOOTER ============ -->
+<footer class="foot">
+  <div class="brand">
+    <svg class="mark" viewBox="0 0 100 100" aria-hidden="true" style="width:24px;height:24px;">
+      <path d="M20 76 L50 32 L80 76" fill="none" stroke="#d7c18e" stroke-width="15" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <span class="word">pull</span>
+  </div>
+  <p>Come back before doomscrolling takes over.</p>
+  <small>Screen Time · Focus · Circle — iPhone</small>
+</footer>
+
+<style>
+  /* breathe ring animation for the hero */
+  .breathe-ring {
+    width: 110px; height: 110px; border-radius: 50%;
+    border: 2px solid var(--s-brass); background: var(--s-brass-soft);
+    display: flex; align-items: center; justify-content: center;
+    animation: breathe 8s ease-in-out infinite;
+  }
+  .breathe-ring span { color: var(--s-brass); font-size: 34px; font-weight: 800; }
+  @keyframes breathe { 0%,100% { transform: scale(.78); } 50% { transform: scale(1); } }
+  @media (prefers-reduced-motion: reduce) { .breathe-ring { animation: none; transform: scale(.92); } }
+
+  /* insights trend chart columns */
+  .bcol { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; height: 100%; justify-content: flex-end; }
+  .bcol span { font-size: 10px; color: var(--s-mute); }
+  .brose { width: 72%; background: var(--s-rose); opacity: .8; border-radius: 6px 6px 3px 3px; position: relative; display: flex; align-items: flex-end; }
+  .bgrn { width: 100%; background: var(--s-green); border-radius: 5px 5px 3px 3px; }
+</style>
