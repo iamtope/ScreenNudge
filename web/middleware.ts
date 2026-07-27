@@ -1,5 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { locales, defaultLocale, isLocale } from './src/i18n/config';
+
+// Inlined (not imported) so the Edge middleware bundle is fully self-contained.
+// Importing from src/i18n/config failed to resolve/load in Vercel's Edge runtime
+// (MIDDLEWARE_INVOCATION_FAILED). Keep this list in sync with src/i18n/config.ts.
+const locales = ['en', 'nl', 'fr', 'de', 'zh', 'it', 'tr'] as const;
+const defaultLocale = 'en';
+function isLocale(value: string): boolean {
+  return (locales as readonly string[]).includes(value);
+}
 
 /** Pick the best supported locale from the Accept-Language header. */
 function detectLocale(request: NextRequest): string {
