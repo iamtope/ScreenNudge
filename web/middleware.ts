@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { locales, defaultLocale, isLocale } from '@/i18n/config';
+import { locales, defaultLocale, isLocale } from './src/i18n/config';
 
 /** Pick the best supported locale from the Accept-Language header. */
 function detectLocale(request: NextRequest): string {
