@@ -170,7 +170,7 @@ Dev buttons only appear when `__DEV__` is true (not App Store release builds).
 
 ## 5. Deep links (invite)
 
-ScreenNudge invite links use `screennudge://invite/CODE`; the legacy `pull://invite/CODE` scheme remains registered for older links.
+ScreenNudge shares universal invite links as `https://www.screennudge.com/invite/CODE` so an installed app opens directly and everyone else gets the website fallback. The `screennudge://invite/CODE` and legacy `pull://invite/CODE` schemes remain registered as in-browser and backwards-compatible fallbacks.
 
 Universal links (`https://join.pull.app/CODE`) can be added later with Associated Domains.
 

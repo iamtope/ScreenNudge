@@ -93,8 +93,9 @@ function parseDeepLink(url: string): PendingNav | null {
     if (segments[0] === 'focus') {
       return { kind: 'focus' };
     }
-    if (segments[0] === 'invite' && segments[1]) {
-      return { kind: 'invite', code: segments[1] };
+    const inviteIndex = segments[0] === 'invite' ? 0 : segments[1] === 'invite' ? 1 : -1;
+    if (inviteIndex >= 0 && segments[inviteIndex + 1]) {
+      return { kind: 'invite', code: segments[inviteIndex + 1] };
     }
   } catch {
   }

@@ -11,6 +11,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.abassadamo.pull",
       "appleTeamId": "B4BT4H7239",
+      "associatedDomains": ["applinks:www.screennudge.com"],
       "infoPlist": {
         "NSFamilyControlsUsageDescription": "ScreenNudge uses Screen Time to help you protect distracting apps and come back before doomscrolling takes over.",
         "NSMotionUsageDescription": "ScreenNudge can ask you to take a few steps as a pause before opening a distracting app.",

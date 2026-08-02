@@ -20,6 +20,7 @@ const MEMBER_TONES = ['#c9b890', '#7a8a9a', '#9a7a8a', '#8a9a7a', '#9a8a7a'];
 const profileCache = new Map<string, CircleProfile>();
 const circleCache = new Map<string, CircleData>();
 const CIRCLE_CACHE_PREFIX = 'pull:circle:v1:';
+const INVITE_ORIGIN = 'https://www.screennudge.com';
 
 type ProfileRow = {
   id: string;
@@ -120,11 +121,11 @@ export async function clearCachedCircle(userId: string): Promise<void> {
 }
 
 export function getInviteLink(inviteCode: string): string {
-  return `screennudge://invite/${inviteCode}`;
+  return `${INVITE_ORIGIN}/invite/${encodeURIComponent(inviteCode.trim())}`;
 }
 
 export function getInviteMessage(inviteCode: string): string {
-  return `Join my circle on ScreenNudge — use my code ${inviteCode} or open: ${getInviteLink(inviteCode)}`;
+  return `Join my circle on ScreenNudge, the app that helps us pause before distracting apps and stay accountable with friends!\n${getInviteLink(inviteCode)}`;
 }
 
 type EnsureProfileRow = {
