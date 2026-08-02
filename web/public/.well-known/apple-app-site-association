@@ -1,0 +1,14 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "B4BT4H7239.com.abassadamo.pull",
+        "paths": [
+          "/invite/*",
+          "/*/invite/*"
+        ]
+      }
+    ]
+  }
+}

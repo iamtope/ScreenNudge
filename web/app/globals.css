@@ -219,6 +219,33 @@ em.accent, .accent { font-style: italic; font-weight: 700; color: var(--brass); 
 .cta__note { margin-top: 14px; font-size: 13.5px; color: var(--text-mute); }
 
 /* ============================================================
+   CIRCLE INVITE
+   ============================================================ */
+.invite-page { min-height: calc(100vh - 64px); display: grid; place-items: center; padding-block: clamp(36px, 8vh, 92px); background: radial-gradient(70% 70% at 50% 0%, var(--brass-soft), transparent 70%); }
+.invite-page__inner { display: flex; justify-content: center; }
+.invite-card { width: min(100%, 600px); border: 1px solid var(--line); border-radius: 28px; background: var(--surface); box-shadow: var(--shadow); padding: clamp(28px, 6vw, 52px); text-align: center; }
+.invite-card__orbit { position: relative; width: 190px; height: 94px; margin: 0 auto 24px; }
+.invite-card__orbit::before { content: ''; position: absolute; left: 28px; right: 28px; top: 46px; height: 1px; background: var(--brass-line); }
+.invite-card__person { position: absolute; top: 21px; z-index: 1; display: grid; place-items: center; width: 52px; height: 52px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface-2); color: var(--text-soft); font-size: 15px; font-weight: 800; }
+.invite-card__person--left { left: 0; }
+.invite-card__person--right { right: 0; }
+.invite-card__person--you { left: 50%; top: 9px; width: 76px; height: 76px; transform: translateX(-50%); border-color: var(--brass); background: var(--brass-soft); color: var(--brass); }
+.invite-card .h2 { max-width: 13ch; margin-inline: auto; }
+.invite-card__lead { max-width: 42ch; margin: 18px auto 0; }
+.invite-code { display: inline-flex; flex-direction: column; gap: 3px; min-width: 190px; margin-top: 26px; border: 1px solid var(--brass-line); border-radius: 16px; background: var(--brass-soft); padding: 12px 24px; }
+.invite-code span { color: var(--text-mute); font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; }
+.invite-code strong { color: var(--brass); font-size: 27px; letter-spacing: 4px; }
+.invite-card__actions { display: flex; justify-content: center; gap: 10px; margin-top: 28px; }
+.invite-card__button { min-width: 170px; }
+.invite-card__note { max-width: 48ch; margin: 18px auto 0; color: var(--text-mute); font-size: 13.5px; line-height: 1.55; }
+@media (max-width: 520px) {
+  .invite-page { place-items: start center; padding-block: 24px 48px; }
+  .invite-card { border-radius: 22px; }
+  .invite-card__actions { flex-direction: column; }
+  .invite-card__button { width: 100%; }
+}
+
+/* ============================================================
    FAQ
    ============================================================ */
 .faq-list { max-width: 780px; margin-inline: auto; display: flex; flex-direction: column; gap: 12px; }
