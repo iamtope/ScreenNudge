@@ -29,7 +29,7 @@ const OPTIONS: Array<{
   {
     value: 'light',
     title: 'Light',
-    body: 'Use a bright interface in Pull.',
+    body: 'Use a bright interface in ScreenNudge.',
     icon: 'white-balance-sunny',
   },
   {

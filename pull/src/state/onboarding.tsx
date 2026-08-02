@@ -34,6 +34,8 @@ import {
   snapshotFromPreferences,
   syncProtectionPreferences,
 } from '@/src/services/protectionPreferences';
+import { readOnboardingComplete, writeOnboardingComplete } from '@/src/lib/storage';
+import { clearGoalLock, recordGoalChange } from '@/src/services/goalLock';
 import { useSession } from '@/src/state/session';
 
 export type AppProtection = {
@@ -50,16 +52,15 @@ type OnboardingState = {
   activated: boolean;
   screenTimeAppCount: number;
   hydrationReady: boolean;
+  onboardingComplete: boolean;
 };
 
-/** Synthetic protection id used when apps come from the iOS picker (no names). */
 export const SCREEN_TIME_PROTECTION_ID = 'screen-time-selection';
 
 type OnboardingContextValue = OnboardingState & {
   setAnswer: (questionId: string, optionId: string) => void;
   setDiscoveredApps: (apps: DiscoveredApp[]) => void;
   toggleApp: (appId: string) => void;
-  /** Keep only the first `max` selected apps (demo-path downgrade to Free). */
   trimSelectedApps: (max: number) => void;
   isSelected: (appId: string) => boolean;
   setDailyLimit: (appId: string, minutes: number) => void;
@@ -70,15 +71,19 @@ type OnboardingContextValue = OnboardingState & {
   setScreenTimeAppCount: (count: number) => void;
   usingScreenTime: boolean;
   protectedCount: number;
+  /**
+   * Whether this device actually has apps picked for protection. The Screen Time
+   * selection lives in device storage and cannot be restored from the server, so
+   * having an account is never proof of a working setup.
+   */
+  hasProtectionSetup: boolean;
   protectionTargets: { id: string; name: string; glyph: string }[];
   setActivated: (value: boolean) => void;
+  markOnboardingComplete: () => void;
   activateProtectionNow: () => Promise<{ ok: boolean; message?: string }>;
-  /** Re-evaluate Screen Time enforcement against the current snapshot (e.g. after
-   *  a plan change pushes a free user over / under the guarded-app limit). */
   reapplyProtection: () => Promise<{ ok: boolean; message?: string }>;
   persistState: () => Promise<void>;
   reset: () => void;
-  /** Wind-Down (Pull+): nightly window that blocks guarded apps. Minutes since midnight. */
   bedtimeEnabled: boolean;
   bedtimeStart: number;
   bedtimeEnd: number;
@@ -134,11 +139,15 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
   const [bedtimeStart, setBedtimeStart] = useState(22 * 60);
   const [bedtimeEnd, setBedtimeEnd] = useState(7 * 60);
   const [hydrationReady, setHydrationReady] = useState(false);
+  const [onboardingComplete, setOnboardingComplete] = useState(false);
   const snapshotRef = useRef<ProtectionSnapshot | null>(null);
 
   const usingScreenTime =
     hasPersistedScreenTimeSelection() || screenTimeAppCount > 0;
   const protectedCount = usingScreenTime ? screenTimeAppCount : selectedAppIds.length;
+  // usingScreenTime already covers a persisted native selection whose count has not
+  // been read back into state yet, so this stays true across a cold launch.
+  const hasProtectionSetup = usingScreenTime || selectedAppIds.length > 0;
 
   const protectionTargets = useMemo(() => {
     if (usingScreenTime) {
@@ -184,34 +193,47 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
     let mounted = true;
 
     void (async () => {
-      let snapshot = await loadProtectionSnapshot();
-      if (!snapshot) {
-        const preferences = await loadProtectionPreferences();
-        if (preferences) {
-          snapshot = snapshotFromPreferences(preferences);
-          await saveProtectionSnapshot(snapshot);
+      // The landing screen waits on hydrationReady before it will route, so this
+      // has to resolve even when storage misbehaves — otherwise the app sits on a
+      // spinner forever.
+      try {
+        const completed = await readOnboardingComplete().catch(() => false);
+        if (mounted && completed) {
+          setOnboardingComplete(true);
+        }
+
+        let snapshot = await loadProtectionSnapshot();
+        if (!snapshot) {
+          const preferences = await loadProtectionPreferences();
+          if (preferences) {
+            snapshot = snapshotFromPreferences(preferences);
+            await saveProtectionSnapshot(snapshot);
+          }
+        }
+        if (!mounted) {
+          return;
+        }
+        if (snapshot) {
+          snapshotRef.current = snapshot;
+          applySnapshot(snapshot, {
+            setSelectedAppIds,
+            setProtections,
+            setActivated,
+            setScreenTimeAppCount,
+          });
+          setBedtimeEnabled(snapshot.bedtimeEnabled);
+          setBedtimeStart(snapshot.bedtimeStart);
+          setBedtimeEnd(snapshot.bedtimeEnd);
+          if (snapshot.activated && snapshot.usingScreenTime) {
+            void applyProtection(snapshot);
+            void applyBedtimeSchedule(snapshot);
+          }
+        }
+      } finally {
+        if (mounted) {
+          setHydrationReady(true);
         }
       }
-      if (!mounted) {
-        return;
-      }
-      if (snapshot) {
-        snapshotRef.current = snapshot;
-        applySnapshot(snapshot, {
-          setSelectedAppIds,
-          setProtections,
-          setActivated,
-          setScreenTimeAppCount,
-        });
-        setBedtimeEnabled(snapshot.bedtimeEnabled);
-        setBedtimeStart(snapshot.bedtimeStart);
-        setBedtimeEnd(snapshot.bedtimeEnd);
-        if (snapshot.activated && snapshot.usingScreenTime) {
-          void applyProtection(snapshot);
-          void applyBedtimeSchedule(snapshot);
-        }
-      }
-      setHydrationReady(true);
     })();
 
     return () => {
@@ -250,6 +272,12 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
       setBedtimeStart(next.bedtimeStart);
       setBedtimeEnd(next.bedtimeEnd);
       await saveProtectionSnapshot(next);
+      // Restored limits/mode have to reach Screen Time, the same way the local
+      // hydration path applies them — otherwise the synced settings never take.
+      if (next.activated && next.usingScreenTime) {
+        void applyProtection(next);
+        void applyBedtimeSchedule(next);
+      }
     })();
 
     return () => {
@@ -276,7 +304,6 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
     return startProtectionReblockListener(() => snapshotRef.current);
   }, []);
 
-  // Re-apply the bedtime schedule whenever it changes (and once after hydration).
   useEffect(() => {
     if (!hydrationReady) {
       return;
@@ -313,6 +340,9 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
       ...prev,
       [appId]: { ...(prev[appId] ?? defaultProtection), dailyLimitMin: minutes },
     }));
+    // Blocking picks the new limit up immediately; the streak keeps judging against
+    // the goal frozen this morning unless this makes it harder.
+    void recordGoalChange(minutes);
   }, []);
 
   const setDailyOpens = useCallback((appId: string, opens: number) => {
@@ -350,6 +380,16 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
     }
   }, []);
 
+  /**
+   * Past this point the user has a working setup, so they should land on Home on
+   * the next launch rather than back on the marketing screen — with or without an
+   * account, since protection is entirely local.
+   */
+  const markOnboardingComplete = useCallback(() => {
+    setOnboardingComplete(true);
+    void writeOnboardingComplete(true);
+  }, []);
+
   const activateProtectionNow = useCallback(async () => {
     const snapshot = buildSnapshot();
     snapshot.activated = true;
@@ -357,9 +397,12 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
     await saveProtectionSnapshot(snapshot);
     setActivated(true);
     const result = await applyProtection(snapshot);
+    if (result.ok) {
+      markOnboardingComplete();
+    }
     void applyBedtimeSchedule(snapshot);
     return result;
-  }, [buildSnapshot]);
+  }, [buildSnapshot, markOnboardingComplete]);
 
   const reapplyProtection = useCallback(async () => {
     return applyProtection(buildSnapshot());
@@ -378,6 +421,9 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
     setProtections({});
     setActivated(false);
     setScreenTimeAppCountState(0);
+    setOnboardingComplete(false);
+    void writeOnboardingComplete(false);
+    void clearGoalLock();
     snapshotRef.current = null;
   }, []);
 
@@ -390,6 +436,7 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
       activated,
       screenTimeAppCount,
       hydrationReady,
+      onboardingComplete,
       setAnswer,
       setDiscoveredApps,
       toggleApp,
@@ -403,8 +450,10 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
       setScreenTimeAppCount,
       usingScreenTime,
       protectedCount,
+      hasProtectionSetup,
       protectionTargets,
       setActivated,
+      markOnboardingComplete,
       activateProtectionNow,
       reapplyProtection,
       persistState,
@@ -422,6 +471,8 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
       activated,
       screenTimeAppCount,
       hydrationReady,
+      onboardingComplete,
+      markOnboardingComplete,
       bedtimeEnabled,
       bedtimeStart,
       bedtimeEnd,
@@ -439,6 +490,7 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
       setScreenTimeAppCount,
       usingScreenTime,
       protectedCount,
+      hasProtectionSetup,
       protectionTargets,
       activateProtectionNow,
       reapplyProtection,

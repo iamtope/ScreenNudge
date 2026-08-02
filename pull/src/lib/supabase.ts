@@ -7,18 +7,28 @@ const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? '';
 
 export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
 
-export const supabase = createClient(
-  supabaseUrl || 'https://placeholder.supabase.co',
-  supabaseAnonKey || 'placeholder',
-  {
-    auth: {
-      storage: AsyncStorage,
-      autoRefreshToken: true,
-      persistSession: true,
-      detectSessionInUrl: false,
-    },
+const resolvedUrl = supabaseUrl || 'https://placeholder.supabase.co';
+
+/**
+ * The AsyncStorage key the session is persisted under. This is the same value
+ * supabase-js derives by default, pinned here so signing out can purge the
+ * token itself when supabase refuses to (see `services/auth.ts`).
+ */
+export const authStorageKey = `sb-${resolvedUrl
+  .replace(/^https?:\/\//, '')
+  .split(/[/:?#]/)[0]
+  .toLowerCase()
+  .split('.')[0]}-auth-token`;
+
+export const supabase = createClient(resolvedUrl, supabaseAnonKey || 'placeholder', {
+  auth: {
+    storage: AsyncStorage,
+    storageKey: authStorageKey,
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: false,
   },
-);
+});
 
 if (Platform.OS !== 'web') {
   AppState.addEventListener('change', (state) => {

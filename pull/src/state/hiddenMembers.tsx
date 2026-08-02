@@ -10,7 +10,6 @@ import React, {
 import { readHiddenMembers, writeHiddenMembers } from '@/src/lib/storage';
 
 type HiddenMembersContextValue = {
-  /** Member/bot ids hidden from the circle leaderboard. */
   hidden: Set<string>;
   isHidden: (id: string) => boolean;
   hide: (id: string) => void;

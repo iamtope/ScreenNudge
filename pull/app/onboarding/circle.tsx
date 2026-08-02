@@ -21,7 +21,7 @@ export default function CircleScreen() {
   const circleMembers = useCircleMembers();
   const [sharing, setSharing] = useState(false);
 
-  const finish = () => router.replace('/(tabs)/home');
+  const finish = () => router.replace('/onboarding/complete');
 
   const ensureAccount = () => {
     if (hasAccount) {
@@ -54,7 +54,7 @@ export default function CircleScreen() {
   };
 
   const joinWithCode = () => {
-    router.push('/circle/join');
+    router.push({ pathname: '/circle/join', params: { returnTo: 'onboarding' } });
   };
 
   const previewMembers = circleMembers.length > 0
@@ -72,7 +72,7 @@ export default function CircleScreen() {
           Build your <Accent>circle.</Accent>
         </Text>
       }
-      subtitle="Pull works best when someone can help you come back."
+      subtitle="See how the people you add are doing, and let them see you."
       footer={
         <>
           <PrimaryButton label={sharing ? 'Opening share…' : 'Invite Friends'} onPress={inviteFriends} />

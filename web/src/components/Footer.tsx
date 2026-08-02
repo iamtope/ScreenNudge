@@ -15,7 +15,7 @@ export function Footer({ locale, dict }: { locale: Locale; dict: Dictionary }) {
           <div className="footer__brand">
             <Link href={`/${locale}`} className="brand">
               <BrandMark className="brand__mark" color="#d7c18e" />
-              <span className="brand__word">pull</span>
+              <span className="brand__word">ScreenNudge</span>
             </Link>
             <p className="footer__tagline">{footer.tagline}</p>
           </div>

@@ -35,7 +35,7 @@ export function Header({
       <div className="container header__inner">
         <Link href={`/${locale}`} className="brand" aria-label={a11y.home}>
           <BrandMark className="brand__mark" />
-          <span className="brand__word">pull</span>
+          <span className="brand__word">ScreenNudge</span>
         </Link>
 
         <nav className="header__nav" data-open={open} aria-label="Primary">

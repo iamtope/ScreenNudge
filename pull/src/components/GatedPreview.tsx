@@ -5,14 +5,12 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { GATE_COPY, type GateReason } from '@/src/state/access';
 import { palette } from '@/src/theme/palette';
 
-// RN 0.85's bundled types don't expose StyleSheet.absoluteFillObject; inline it.
 const absoluteFill = { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 } as const;
 
 type Props = {
   reason: GateReason;
   onUnlock: () => void;
   children: React.ReactNode;
-  /** card = compact teaser (home). screen = full tab content. */
   variant?: 'card' | 'screen';
 };
 
@@ -134,7 +132,6 @@ const styles = StyleSheet.create({
   },
 });
 
-/** Wrap screen content — shows preview blurred when locked. */
 export function GatedScreen({
   requirement,
   unlocked,

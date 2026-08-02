@@ -2,19 +2,15 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { OnboardingScaffold, Accent, PrimaryButton, SecondaryButton } from '@/src/components/Onboarding';
-import { protectionModeName, formatMinutes, formatOpens } from '@/src/domain/onboarding';
+import { protectionModeName, formatMinutes } from '@/src/domain/onboarding';
 import { useOnboarding } from '@/src/state/onboarding';
-import { useAccess } from '@/src/state/access';
-import { PlanComparison } from '@/src/components/PlanComparison';
 import { palette } from '@/src/theme/palette';
 
 export default function PlanScreen() {
   const router = useRouter();
   const { protectionTargets, getProtection, answers } = useOnboarding();
-  const { isPullPlus } = useAccess();
 
   const lateNight = answers.timing === 'late-night';
-  const socialSupport = answers.support && answers.support !== 'nobody';
 
   return (
     <OnboardingScaffold
@@ -24,16 +20,16 @@ export default function PlanScreen() {
           Your <Accent>protection plan.</Accent>
         </Text>
       }
-      subtitle="Here's what Pull will do. Adjust anything before continuing."
+      subtitle="Here's what ScreenNudge will do. Adjust anything before continuing."
       footer={
         <>
-          <PrimaryButton label="Looks Good" onPress={() => router.push('/onboarding/privacy')} />
+          <PrimaryButton label="Looks Good" onPress={() => router.push('/onboarding/activate')} />
           <SecondaryButton label="Edit Plan" onPress={() => router.push('/onboarding/limits')} />
         </>
       }
     >
       {protectionTargets.map((app) => {
-        const { dailyLimitMin, dailyOpens, mode } = getProtection(app.id);
+        const { dailyLimitMin, mode } = getProtection(app.id);
         return (
           <View key={app.id} style={styles.card}>
             <View style={styles.appRow}>
@@ -43,15 +39,11 @@ export default function PlanScreen() {
               <Text style={styles.appName}>{app.name}</Text>
             </View>
             <Text style={styles.line}>· {formatMinutes(dailyLimitMin)}/day</Text>
-            <Text style={styles.line}>· {formatOpens(dailyOpens)}</Text>
             <Text style={styles.line}>· {protectionModeName(mode)} Protection</Text>
             {lateNight ? <Text style={styles.line}>· Stronger protection late at night</Text> : null}
-            {socialSupport ? <Text style={styles.line}>· Friend Pull enabled</Text> : null}
           </View>
         );
       })}
-
-      <PlanComparison isPullPlus={isPullPlus} onUpgrade={() => router.push('/premium')} />
     </OnboardingScaffold>
   );
 }

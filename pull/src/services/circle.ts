@@ -1,4 +1,6 @@
 import { supabase } from '@/src/lib/supabase';
+import { normalizedDisplayName } from '@/src/lib/brand';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export type CircleProfile = {
   id: string;
@@ -15,6 +17,9 @@ export type CircleData = {
 };
 
 const MEMBER_TONES = ['#c9b890', '#7a8a9a', '#9a7a8a', '#8a9a7a', '#9a8a7a'];
+const profileCache = new Map<string, CircleProfile>();
+const circleCache = new Map<string, CircleData>();
+const CIRCLE_CACHE_PREFIX = 'pull:circle:v1:';
 
 type ProfileRow = {
   id: string;
@@ -37,7 +42,7 @@ export function toneForId(id: string): string {
 }
 
 function toCircleProfile(row: ProfileRow): CircleProfile {
-  const displayName = row.display_name?.trim() || 'Pull user';
+  const displayName = normalizedDisplayName(row.display_name);
   return {
     id: row.id,
     displayName,
@@ -55,12 +60,71 @@ function profileFromMember(row: MemberRow): CircleProfile | null {
   return toCircleProfile(profile);
 }
 
+function isCircleData(value: unknown): value is CircleData {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+  const candidate = value as Partial<CircleData>;
+  return (
+    typeof candidate.circleId === 'string' &&
+    typeof candidate.inviteCode === 'string' &&
+    Array.isArray(candidate.members) &&
+    candidate.members.every(
+      (member) =>
+        member &&
+        typeof member.id === 'string' &&
+        typeof member.displayName === 'string' &&
+        typeof member.inviteCode === 'string' &&
+        typeof member.initial === 'string' &&
+        typeof member.tone === 'string',
+    )
+  );
+}
+
+async function cacheCircle(userId: string, circle: CircleData): Promise<void> {
+  circleCache.set(userId, circle);
+  try {
+    await AsyncStorage.setItem(`${CIRCLE_CACHE_PREFIX}${userId}`, JSON.stringify(circle));
+  } catch {
+  }
+}
+
+export async function getCachedCircle(userId: string): Promise<CircleData | null> {
+  const memory = circleCache.get(userId);
+  if (memory) {
+    return memory;
+  }
+  try {
+    const raw = await AsyncStorage.getItem(`${CIRCLE_CACHE_PREFIX}${userId}`);
+    if (!raw) {
+      return null;
+    }
+    const parsed: unknown = JSON.parse(raw);
+    if (!isCircleData(parsed)) {
+      return null;
+    }
+    circleCache.set(userId, parsed);
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+export async function clearCachedCircle(userId: string): Promise<void> {
+  circleCache.delete(userId);
+  profileCache.delete(userId);
+  try {
+    await AsyncStorage.removeItem(`${CIRCLE_CACHE_PREFIX}${userId}`);
+  } catch {
+  }
+}
+
 export function getInviteLink(inviteCode: string): string {
-  return `pull://invite/${inviteCode}`;
+  return `screennudge://invite/${inviteCode}`;
 }
 
 export function getInviteMessage(inviteCode: string): string {
-  return `Join my circle on Pull — use my code ${inviteCode} or open: ${getInviteLink(inviteCode)}`;
+  return `Join my circle on ScreenNudge — use my code ${inviteCode} or open: ${getInviteLink(inviteCode)}`;
 }
 
 type EnsureProfileRow = {
@@ -69,7 +133,6 @@ type EnsureProfileRow = {
   invite_code: string;
 };
 
-/** Creates profile + solo circle when missing (pre-migration accounts). */
 export async function ensureMyProfile(): Promise<CircleProfile | null> {
   const { data, error } = await supabase.rpc('ensure_my_profile');
   if (error || !data) {
@@ -93,14 +156,18 @@ export async function getMyProfile(userId: string): Promise<CircleProfile | null
     .eq('id', userId)
     .maybeSingle();
 
-  if (error || !data) {
+  if (error) {
+    return profileCache.get(userId) ?? null;
+  }
+  if (!data) {
     return null;
   }
 
-  return toCircleProfile(data);
+  const profile = toCircleProfile(data);
+  profileCache.set(userId, profile);
+  return profile;
 }
 
-/** Profile with invite code, creating bootstrap rows when needed. */
 export async function getOrCreateMyProfile(userId: string): Promise<CircleProfile | null> {
   const existing = await getMyProfile(userId);
   if (existing?.inviteCode) {
@@ -119,7 +186,10 @@ export async function getMyCircle(userId: string): Promise<CircleData | null> {
     .select('circle_id')
     .eq('user_id', userId);
 
-  if (membershipError || !memberships?.length) {
+  if (membershipError) {
+    return circleCache.get(userId) ?? null;
+  }
+  if (!memberships?.length) {
     return null;
   }
 
@@ -130,7 +200,10 @@ export async function getMyCircle(userId: string): Promise<CircleData | null> {
     .select('circle_id, user_id, profiles (id, display_name, invite_code)')
     .in('circle_id', circleIds);
 
-  if (membersError || !members?.length) {
+  if (membersError) {
+    return circleCache.get(userId) ?? null;
+  }
+  if (!members?.length) {
     return null;
   }
 
@@ -156,21 +229,25 @@ export async function getMyCircle(userId: string): Promise<CircleData | null> {
     }
 
     const myProfile = soloCircle[1].find((member) => member.id === userId) ?? soloCircle[1][0];
-    return {
+    const circle = {
       circleId: soloCircle[0],
       members: soloCircle[1],
       inviteCode: myProfile.inviteCode,
     };
+    void cacheCircle(userId, circle);
+    return circle;
   }
 
   const [circleId, circleMembers] = activeCircle;
   const myProfile = circleMembers.find((member) => member.id === userId) ?? circleMembers[0];
 
-  return {
+  const circle = {
     circleId,
     members: circleMembers,
     inviteCode: myProfile.inviteCode,
   };
+  void cacheCircle(userId, circle);
+  return circle;
 }
 
 export async function joinWithCode(code: string): Promise<CircleData> {

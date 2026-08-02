@@ -6,7 +6,6 @@ import { palette } from '@/src/theme/palette';
 
 type Glyph = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
-/** Renders a tab bar glyph, swapping to the filled variant when active. */
 function tabIcon(active: Glyph, inactive: Glyph) {
   return ({ color, size, focused }: { color: ColorValue; size: number; focused: boolean }) => (
     <MaterialCommunityIcons name={focused ? active : inactive} size={size} color={color as string} />

@@ -2,6 +2,8 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ScrollView, View, Text, StyleSheet, Pressable, AppState } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { Screen } from '@/src/components/Screen';
+import { GatedScreen } from '@/src/components/GatedPreview';
+import { useUnlockNavigation } from '@/src/hooks/useUnlockNavigation';
 import { useFocus } from '@/src/state/focus';
 import { usePacer } from '@/src/state/pacer';
 import { useAchievements } from '@/src/state/achievements';
@@ -10,10 +12,9 @@ import { PACER_BOTS, botRoomSession, type PacerBot, type PacerRoomSession } from
 import { friendlyAccountError } from '@/src/lib/network';
 import { palette } from '@/src/theme/palette';
 
-/** One-tap durations. Steppers below cover anything in between, up to 24h. */
 const QUICK_PRESETS = [25, 50, 90, 240, 480];
 const MIN_MINUTES = 5;
-const MAX_MINUTES = 24 * 60; // 24 hours
+const MAX_MINUTES = 24 * 60;
 
 function toMs(iso: string): number {
   return new Date(iso).getTime();
@@ -76,7 +77,6 @@ function FocusContent() {
   const [error, setError] = useState<string | null>(null);
   const endingRef = useRef(false);
 
-  // Tick the timer + clock only while the tab is focused; recompute on resume.
   useFocusEffect(
     useCallback(() => {
       setNowMs(Date.now());
@@ -95,7 +95,6 @@ function FocusContent() {
 
   const remainingMs = activeSession ? toMs(activeSession.expectedEndAt) - nowMs : minutes * 60_000;
 
-  // Finalise the session when the countdown reaches zero while the screen is open.
   useEffect(() => {
     if (isFocusing && remainingMs <= 0 && !endingRef.current) {
       endingRef.current = true;
@@ -135,8 +134,6 @@ function FocusContent() {
     setMinutes((current) => clampMinutes(current + delta));
   }, []);
 
-  // The bots are disclosed, not friends: they keep the room from being empty for
-  // a solo user. Liveness ticks with nowMs (recomputed every second).
   const activeBots: { bot: PacerBot; session: PacerRoomSession }[] = [];
   if (pacerEnabled) {
     for (const bot of PACER_BOTS) {
@@ -256,11 +253,18 @@ function FocusContent() {
 }
 
 export default function FocusScreen() {
+  // Focus sessions are server-backed, so they need an account — a circle is
+  // optional (you can focus alone). Without this gate a guest tapping Start got
+  // the generic connection error instead of being told to sign in.
+  const { unlocked, blockedBy, onUnlock } = useUnlockNavigation('account');
+
   return (
     <Screen edges={['top']}>
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
-        <FocusContent />
-      </ScrollView>
+      <GatedScreen requirement="account" unlocked={unlocked} blockedBy={blockedBy} onUnlock={onUnlock}>
+        <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
+          <FocusContent />
+        </ScrollView>
+      </GatedScreen>
     </Screen>
   );
 }

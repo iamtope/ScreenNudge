@@ -1,4 +1,5 @@
 import { isSupabaseConfigured, supabase } from '@/src/lib/supabase';
+import { normalizedDisplayName } from '@/src/lib/brand';
 import type { ProtectionMode } from '@/src/domain/onboarding';
 import type { AttemptEvent, AttemptOutcome } from '@/src/services/attempts';
 
@@ -28,6 +29,9 @@ type UsageEventRowRaw = {
   mode: ProtectionMode | null;
   opens_over: boolean | null;
 };
+
+const myUsageEventsCache = new Map<string, AttemptEvent[]>();
+const circleUsageStatsCache = new Map<string, UsageStatRow[]>();
 
 function dateKey(date = new Date()): string {
   const year = date.getFullYear();
@@ -66,11 +70,6 @@ function toAttemptEvent(row: UsageEventRowRaw): AttemptEvent | null {
   };
 }
 
-/**
- * Mirror a locally-recorded usage event to the server (best-effort). The local
- * AsyncStorage store remains the immediate source of truth for the UI; this just
- * gives durable, cross-device, circle-visible history. Failures are swallowed.
- */
 export async function logUsage(
   outcome: AttemptOutcome,
   meta: {
@@ -99,57 +98,61 @@ export async function logUsage(
     });
     return !error;
   } catch {
-    // Best-effort; never block the local flow on network.
     return false;
   }
 }
 
-/** The signed-in user's raw usage events, for account-backed insights. */
 export async function getMyUsageEvents(days = 31): Promise<AttemptEvent[]> {
   if (!isSupabaseConfigured) {
     return [];
   }
+  let cacheKey: string | null = null;
   try {
     const { data: sessionData } = await supabase.auth.getSession();
     if (!sessionData.session) {
       return [];
     }
+    cacheKey = `${sessionData.session.user.id}:${Math.max(1, Math.round(days))}`;
     const { data, error } = await supabase.rpc('get_my_usage_events', {
       p_days: Math.max(1, Math.round(days)),
     });
     if (error || !data) {
-      return [];
+      return myUsageEventsCache.get(cacheKey) ?? [];
     }
-    return (data as UsageEventRowRaw[])
+    const events = (data as UsageEventRowRaw[])
       .map(toAttemptEvent)
       .filter((event): event is AttemptEvent => Boolean(event))
       .sort((a, b) => new Date(a.occurredAt).getTime() - new Date(b.occurredAt).getTime());
+    myUsageEventsCache.set(cacheKey, events);
+    return events;
   } catch {
-    return [];
+    return cacheKey ? (myUsageEventsCache.get(cacheKey) ?? []) : [];
   }
 }
 
-/** Per-member attempt/open/resist counts for a circle, over a window. */
 export async function getCircleUsageStats(
   circleId: string,
   window: UsageStatWindow,
 ): Promise<UsageStatRow[]> {
+  const cacheKey = `${circleId}:${window}`;
   try {
     const { data, error } = await supabase.rpc('get_circle_usage_stats', {
       p_circle_id: circleId,
       p_window: window,
     });
     if (error || !data) {
-      return [];
+      return circleUsageStatsCache.get(cacheKey) ?? [];
     }
-    return (data as UsageStatRowRaw[]).map((row) => ({
+    const rows = (data as UsageStatRowRaw[]).map((row) => ({
       userId: row.user_id,
-      displayName: row.display_name?.trim() || 'Pull user',
+      displayName: normalizedDisplayName(row.display_name),
       attempts: row.attempts,
       opens: row.opens,
       resists: row.comebacks,
     }));
+    circleUsageStatsCache.set(cacheKey, rows);
+    return rows;
   } catch {
-    return [];
+    return circleUsageStatsCache.get(cacheKey) ?? [];
   }
 }

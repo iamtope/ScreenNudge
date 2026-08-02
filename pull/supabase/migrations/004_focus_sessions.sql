@@ -1,4 +1,4 @@
--- Pull: focus sessions (shared live focus room + history)
+-- ScreenNudge: focus sessions (shared live focus room + history)
 -- Run in Supabase SQL Editor after 001 / 002 / 003.
 --
 -- A focus session is a declared-length deep-work block (Pomodoro style). Circle

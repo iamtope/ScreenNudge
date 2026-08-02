@@ -1,4 +1,4 @@
-# Supabase setup for Pull
+# Supabase setup for ScreenNudge
 
 ## 1. Create project
 
@@ -7,7 +7,7 @@
 
 ### Apple
 
-Pull uses **native** Sign in with Apple on iOS. Apple’s sheet works on the phone; Supabase must accept the token.
+ScreenNudge uses **native** Sign in with Apple on iOS. Apple’s sheet works on the phone; Supabase must accept the token.
 
 **If you see `Provider (issuer "https://appleid.apple.com") is not enabled`**, Apple is off or incomplete in Supabase — not an Apple Developer website URL problem.
 
@@ -170,7 +170,7 @@ Dev buttons only appear when `__DEV__` is true (not App Store release builds).
 
 ## 5. Deep links (invite)
 
-MVP uses custom scheme: `pull://invite/CODE`
+ScreenNudge invite links use `screennudge://invite/CODE`; the legacy `pull://invite/CODE` scheme remains registered for older links.
 
 Universal links (`https://join.pull.app/CODE`) can be added later with Associated Domains.
 

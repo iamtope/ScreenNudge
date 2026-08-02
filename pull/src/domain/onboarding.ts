@@ -1,5 +1,3 @@
-// Static copy + option data for the onboarding flow. Kept separate from screen
-// components so wording can evolve without touching layout.
 
 export type Question = {
   id: string;
@@ -20,7 +18,7 @@ export const personalizationQuestions: Question[] = [
   },
   {
     id: 'timing',
-    prompt: 'When does scrolling usually get away from you?',
+    prompt: 'When do you find yourself scrolling the most?',
     options: [
       { id: 'waking', label: 'Right after waking up' },
       { id: 'work', label: 'During work / study' },
@@ -39,7 +37,7 @@ export const personalizationQuestions: Question[] = [
   },
   {
     id: 'support',
-    prompt: "If you're stuck scrolling, who would you trust to pull you out?",
+    prompt: "Who motivates you to stick to your goals?",
     options: [
       { id: 'close-friends', label: 'Close friends' },
       { id: 'family', label: 'Family' },
@@ -75,7 +73,7 @@ export const protectionModes: ProtectionModeInfo[] = [
     includes: [
       'Breathing pause',
       'Intention check',
-      'Friend Pull option',
+      'Friend nudge option',
       'Simple challenge',
       'Delay timer',
       'Open anyway behind friction',
@@ -102,20 +100,12 @@ export function protectionModeName(mode: ProtectionMode): string {
   return protectionModes.find((m) => m.id === mode)?.name ?? 'Balanced';
 }
 
-// Daily-limit options (in minutes) surfaced through a dropdown, plus a Custom
-// entry that reveals a fine-tuning stepper. 0.5 = 30s, kept for quick testing.
 export const dailyLimitOptions: number[] = [0.5, 10, 15, 20, 30, 45, 60, 90, 120];
 
-// Daily-opens options: 1–20, plus Custom for fine-tuning up to 99.
-export const dailyOpensOptions: number[] = Array.from({ length: 20 }, (_, i) => i + 1);
-
 export const DEFAULT_DAILY_LIMIT_MIN = 30;
-export const DEFAULT_DAILY_OPENS = 8;
+export const REPEAT_UNLOCK_FRICTION_THRESHOLD = 8;
+export const DEFAULT_DAILY_OPENS = REPEAT_UNLOCK_FRICTION_THRESHOLD;
 export const DEFAULT_PROTECTION_MODE: ProtectionMode = 'balanced';
-
-export function formatOpens(opens: number): string {
-  return `${opens} open${opens === 1 ? '' : 's'}/day`;
-}
 
 export function formatMinutes(min: number): string {
   if (min < 1) {
@@ -129,7 +119,6 @@ export function formatMinutes(min: number): string {
   return `${Math.round(min)} min`;
 }
 
-/** Soft warning fires at 80% of the daily limit. */
 export function softWarningMinutes(dailyLimitMin: number): number {
   return dailyLimitMin * 0.8;
 }

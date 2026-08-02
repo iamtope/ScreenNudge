@@ -14,7 +14,7 @@ export function CircleInviteCard() {
     <View style={styles.card}>
       <Text style={styles.title}>Add friends to your circle</Text>
       <Text style={styles.body}>
-        Free with your account. Add a friend to start leaderboards, focus rooms, and rescues.
+        Free with your account. Add a friend to see how you are both doing, and focus together.
       </Text>
       <CircleInviteSection
         canInvite={hasAccount}

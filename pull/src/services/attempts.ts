@@ -1,30 +1,25 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { ProtectionMode } from '@/src/domain/onboarding';
 import { getMyUsageEvents, logUsage } from '@/src/services/usage';
+import { withTimeoutFallback } from '@/src/lib/network';
 
 const ATTEMPTS_KEY = 'pull:attempts:v2';
 const ATTEMPT_EVENTS_KEY = 'pull:attemptEvents:v1';
 const MAX_EVENTS = 500;
 const DAY_MS = 24 * 60 * 60 * 1000;
+const SERVER_EVENTS_WAIT_MS = 2_000;
 
-/** Wipe local attempt/resist history (used on sign-out so stats don't bleed between users). */
 export async function clearAttempts(): Promise<void> {
   await AsyncStorage.multiRemove([ATTEMPTS_KEY, ATTEMPT_EVENTS_KEY]);
 }
 
 type AttemptDay = {
   date: string;
-  /** Times the user reached the intercept pause. */
   attempts: number;
-  /** Times the user completed the flow and opened anyway (a granted pass). */
   opens: number;
-  /** Times the user resisted and kept the app blocked. */
   resists: number;
 };
 
-// The persisted/server outcome is still "comeback" for compatibility with
-// existing AsyncStorage data and Supabase RPCs. App-facing language calls it a
-// resist.
 export type AttemptOutcome = 'attempt' | 'open' | 'comeback';
 
 export type AttemptEvent = {
@@ -148,7 +143,6 @@ async function appendEvent(outcome: AttemptOutcome, meta: AttemptEventMeta = {})
   };
   const events = await readEvents();
   await writeEvents([...events, event]);
-  // Mirror to the server for durable cross-device / circle stats (best-effort).
   void logUsage(outcome, {
     appName: event.appName,
     mode: event.mode,
@@ -158,8 +152,22 @@ async function appendEvent(outcome: AttemptOutcome, meta: AttemptEventMeta = {})
   });
 }
 
+async function serverEventsWithoutBlockingLocal(days: number): Promise<AttemptEvent[]> {
+  return withTimeoutFallback(getMyUsageEvents(days), SERVER_EVENTS_WAIT_MS, []);
+}
+
+export async function getLocalAttemptEvents(days = 7): Promise<AttemptEvent[]> {
+  const since = Date.now() - Math.max(days, 1) * DAY_MS;
+  return (await readEvents()).filter(
+    (event) => new Date(event.occurredAt).getTime() >= since,
+  );
+}
+
 export async function getAttemptEvents(days = 7): Promise<AttemptEvent[]> {
-  const [events, serverEvents] = await Promise.all([readEvents(), getMyUsageEvents(days)]);
+  const [events, serverEvents] = await Promise.all([
+    getLocalAttemptEvents(days),
+    serverEventsWithoutBlockingLocal(days),
+  ]);
   const since = Date.now() - Math.max(days, 1) * DAY_MS;
   const byId = new Map<string, AttemptEvent>();
   for (const event of [...serverEvents, ...events]) {
@@ -172,7 +180,6 @@ export async function getAttemptEvents(days = 7): Promise<AttemptEvent[]> {
   );
 }
 
-/** Backfill local guest events into the signed-in account. Server-side ids dedupe repeats. */
 export async function syncLocalAttemptEvents(): Promise<void> {
   const events = await readEvents();
   for (const event of events) {

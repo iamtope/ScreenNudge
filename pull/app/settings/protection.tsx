@@ -52,12 +52,11 @@ export default function ProtectionSettingsScreen() {
           label="Status"
           value={
             activated && protectedCount > 0
-              ? `${protectedCount} app${protectedCount === 1 ? '' : 's'} · ${usingScreenTime ? 'Screen Time' : 'Demo list'}`
+              ? `${protectedCount} app${protectedCount === 1 ? '' : 's'} · ${usingScreenTime ? 'Screen Time' : 'On-device'}`
               : 'Not active'
           }
         />
-        <SettingsInfoRow label="Daily limit" value={`${formatMinutes(currentLimit.dailyLimitMin)} · then Pull steps in`} />
-        <SettingsInfoRow label="Opens / day" value={`${currentLimit.dailyOpens} · extra opens add friction`} />
+        <SettingsInfoRow label="Daily limit" value={`${formatMinutes(currentLimit.dailyLimitMin)} · then ScreenNudge steps in`} />
         <SettingsInfoRow label="Nudge mode" value={protectionModeName(currentMode)} />
       </SettingsSection>
 
@@ -94,7 +93,7 @@ export default function ProtectionSettingsScreen() {
       </SettingsSection>
 
       <Text style={styles.footnote}>
-        Continue in Pull opens the pause flow. Close keeps the app blocked and records a resist.
+        Continue in ScreenNudge starts the pause flow. Close keeps the app blocked and records a resist.
       </Text>
     </SettingsScaffold>
   );

@@ -6,11 +6,12 @@ import {
   type AchievementMetrics,
 } from '@/src/domain/achievements';
 import { isSupabaseConfigured, supabase } from '@/src/lib/supabase';
+import { withTimeoutFallback } from '@/src/lib/network';
 
 const UNLOCKED_KEY = 'pull:achievements:v1';
 const SEED_KEY = 'pull:achievements:seeded:v1';
+const SERVER_UNLOCKS_WAIT_MS = 2_000;
 
-/** Map of achievement id → ISO date it was unlocked. */
 export type UnlockedMap = Record<string, string>;
 
 type AchievementUnlockRow = {
@@ -31,7 +32,6 @@ async function writeLocalUnlocked(unlocked: UnlockedMap): Promise<void> {
   try {
     await AsyncStorage.setItem(UNLOCKED_KEY, JSON.stringify(unlocked));
   } catch {
-    // Best-effort
   }
 }
 
@@ -73,7 +73,6 @@ async function writeServerUnlocked(unlocked: UnlockedMap): Promise<void> {
       p_achievement_ids: ids,
     });
   } catch {
-    // Best-effort; local unlocks remain the immediate source of truth.
   }
 }
 
@@ -82,7 +81,10 @@ function mergeUnlocked(local: UnlockedMap, server: UnlockedMap): UnlockedMap {
 }
 
 export async function getUnlocked(): Promise<UnlockedMap> {
-  const [local, server] = await Promise.all([readLocalUnlocked(), readServerUnlocked()]);
+  const [local, server] = await Promise.all([
+    readLocalUnlocked(),
+    withTimeoutFallback(readServerUnlocked(), SERVER_UNLOCKS_WAIT_MS, {}),
+  ]);
   const merged = mergeUnlocked(local, server);
   if (Object.keys(server).length) {
     await writeLocalUnlocked(merged);
@@ -93,7 +95,6 @@ export async function getUnlocked(): Promise<UnlockedMap> {
   return merged;
 }
 
-/** Achievements whose threshold is now met but which aren't unlocked yet. */
 export function findNewlyUnlocked(metrics: AchievementMetrics, unlocked: UnlockedMap): Achievement[] {
   return ACHIEVEMENTS.filter((a) => !unlocked[a.id] && (metrics[a.metric] ?? 0) >= a.threshold);
 }
@@ -115,11 +116,6 @@ export async function markUnlocked(ids: string[]): Promise<UnlockedMap> {
   return current;
 }
 
-/**
- * First-run guard: pre-existing users have a backlog of met thresholds. We mark
- * those silently on the very first evaluation so we don't flood them with
- * celebrations — only genuinely new unlocks after that get celebrated.
- */
 export async function isSeeded(): Promise<boolean> {
   try {
     return (await AsyncStorage.getItem(SEED_KEY)) === '1';
@@ -132,6 +128,5 @@ export async function setSeeded(): Promise<void> {
   try {
     await AsyncStorage.setItem(SEED_KEY, '1');
   } catch {
-    // Best-effort
   }
 }

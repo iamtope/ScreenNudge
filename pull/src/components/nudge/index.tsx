@@ -11,7 +11,6 @@ import { DelayStep } from './DelayStep';
 import { DecisionStep } from './DecisionStep';
 import type { NudgeStepProps } from './types';
 
-/** Maps each step kind to its component. Add new steps here only. */
 export const nudgeStepRegistry: Record<NudgeStepKind, React.ComponentType<NudgeStepProps>> = {
   breathe: BreatheStep,
   intention: IntentionStep,

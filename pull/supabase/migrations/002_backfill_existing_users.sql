@@ -23,7 +23,7 @@ begin
       r.raw_user_meta_data ->> 'full_name',
       r.raw_user_meta_data ->> 'name',
       nullif(split_part(coalesce(r.email, ''), '@', 1), ''),
-      'Pull user'
+      'ScreenNudge user'
     );
 
     insert into public.profiles (id, display_name, invite_code)

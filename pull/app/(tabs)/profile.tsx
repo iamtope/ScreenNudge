@@ -22,12 +22,10 @@ function dateKey(d: Date): string {
   return `${y}-${m}-${day}`;
 }
 
-/** Consecutive days (up to today) with at least one resist. */
 function computeStreak(resistDates: Set<string>): number {
   let streak = 0;
   const cursor = new Date();
   if (!resistDates.has(dateKey(cursor))) {
-    // Today might not have one yet — don't break the streak for that.
     cursor.setDate(cursor.getDate() - 1);
   }
   while (resistDates.has(dateKey(cursor))) {
@@ -54,7 +52,6 @@ export default function ProfileScreen() {
   const { unlocked, metrics, evaluate } = useAchievements();
   const [events, setEvents] = useState<AttemptEvent[]>([]);
 
-  // Reload on focus so freshly-recorded resists/streak show on return.
   useFocusEffect(
     useCallback(() => {
       let active = true;
@@ -122,7 +119,7 @@ export default function ProfileScreen() {
         </View>
 
         <Pressable onPress={() => router.push('/premium')} style={styles.cta}>
-          <Text style={styles.ctaTitle}>Become Pull+</Text>
+          <Text style={styles.ctaTitle}>Become ScreenNudge+</Text>
           <Text style={styles.meta}>Deeper insights · advanced controls</Text>
         </Pressable>
       </ScrollView>

@@ -1,9 +1,4 @@
-//
-//  Utils.swift
-//  Pods
-//
-//  Created by Robert Herber on 2024-11-07.
-//
+
 
 import DeviceActivity
 import FamilyControls
@@ -46,7 +41,6 @@ func updateShield(shieldId: String?, triggeredBy: String?, activitySelectionId: 
     shieldConfiguration["triggeredBy"] = triggeredBy
     shieldConfiguration["updatedAt"] = Date().ISO8601Format()
 
-    // update default shield
     userDefaults?.set(shieldConfiguration, forKey: FALLBACK_SHIELD_CONFIGURATION_KEY)
     if let activitySelectionId = activitySelectionId {
       userDefaults?.set(
@@ -83,7 +77,7 @@ func sleep(ms: Int) {
 
 func openUrl(urlString: String) {
   guard let url = URL(string: urlString) else {
-    return  // be safe
+    return
   }
 
   let context = NSExtensionContext()
@@ -223,7 +217,7 @@ func executeGenericAction(
   } else if type == "disableBlockAllMode" {
     disableBlockAllMode(triggeredBy: triggeredBy)
   } else if type == "openApp" {
-    // todo: replace with general string
+
     openUrl(urlString: "device-activity://")
 
     sleep(ms: 1000)
@@ -234,7 +228,6 @@ func executeGenericAction(
       activitySelectionId: nil
     )
 
-    // sometimes the shield doesn't pick up the shield config change above, trying a sleep to get around it
     sleep(ms: 50)
 
     enableBlockAllMode(triggeredBy: triggeredBy)
@@ -267,7 +260,6 @@ func executeGenericAction(
 
       task = sendHttpRequest(with: url, config: config, placeholders: placeholders)
 
-      // required for it to have time to trigger before process/callback ends
       sleep(ms: 1000)
     }
   } else if type == "startMonitoring" {
@@ -372,16 +364,13 @@ func sendNotification(contents: [String: Any], placeholders: [String: String?]) 
   UNUserNotificationCenter.current().add(request, withCompletionHandler: nil)
 }
 
-// dataRequest which sends request to given URL and convert to Decodable Object
 func sendHttpRequest(with url: String, config: [String: Any], placeholders: [String: String?])
   -> URLSessionDataTask {
-  // create the URL
-  let url = URL(string: url)!  // change the URL
 
-  // create the session object
+  let url = URL(string: url)!
+
   let session = URLSession.shared
 
-  // Now create the URLRequest object using the URL object
   var request = URLRequest(url: url)
 
   if let httpMethod = config["httpMethod"] as? String {
@@ -396,12 +385,11 @@ func sendHttpRequest(with url: String, config: [String: Any], placeholders: [Str
 
   if let headers = config["headers"] as? [String: String] {
     let headersWithPlaceholders = replacePlaceholdersInObject(headers, with: placeholders)
-    // merge with existing headers
+
     request.allHTTPHeaderFields = request.allHTTPHeaderFields?.merging(
       headersWithPlaceholders, uniquingKeysWith: { $1 })
   }
 
-  // create dataTask using the session object to send data to the server
   let task = session.dataTask(
     with: request,
     completionHandler: { data, _, error in
@@ -415,13 +403,13 @@ func sendHttpRequest(with url: String, config: [String: Any], placeholders: [Str
       }
 
       do {
-        // create json object from data
+
         if let json = try JSONSerialization.jsonObject(with: data, options: .mutableContainers)
           as? [String: Any] {
-          print(json)
+
         }
       } catch let error {
-        print(error.localizedDescription)
+
       }
     })
 
@@ -467,7 +455,7 @@ struct FamilyActivitySelectionWithIdWithMatching {
 
   var selection: FamilyActivitySelection
   var id: String
-  // indicates that the match is directly on the webDomain or application
+
   var granularMatch: Bool
   var match: Bool
   var granularityCount: Int
@@ -482,9 +470,9 @@ func getTextToReplaceWithOptionalSpecialTreatment(_ stringToReplace: String)
   -> TextToReplaceWithOptionalSpecialTreatment {
   if stringToReplace.starts(with: "{") && stringToReplace.hasSuffix("}")
     && stringToReplace.contains(":") {
-    // remove prefix and suffix
+
     let trimmed = String(stringToReplace.dropFirst().dropLast())
-    // split on : and return first part
+
     let prefixAndPlaceholder = trimmed.split(separator: ":")
     return TextToReplaceWithOptionalSpecialTreatment(
       textToReplace: String(prefixAndPlaceholder[1]),
@@ -674,8 +662,6 @@ func normalizedWebDomain(
     )
   }
 
-  // We intentionally don't enforce a TLD requirement here. Apple accepts domains
-  // as strings, and callers may choose internal/single-label hostnames.
   return normalizedDomain
 }
 
@@ -692,8 +678,6 @@ func parseWebDomains(
     )
   }
 
-  // Apply limits after normalization/deduplication so repeated values don't
-  // count against Apple's 50-domain cap.
   if normalizedDomains.count > WEB_CONTENT_FILTER_POLICY_MAX_DOMAINS {
     throw WebContentFilterPolicyError.tooManyDomains(
       fieldName: fieldName,
@@ -843,8 +827,7 @@ func clearWebContentFilterPolicy(
 
 @available(iOS 15.0, *)
 func isWebContentFilterPolicyActive() -> Bool {
-  // Intentionally read from the active ManagedSettingsStore instead of UserDefaults
-  // metadata. This reflects the currently applied policy in the running process.
+
   guard let policy = store.webContent.blockedByFilter else {
     return false
   }
@@ -1788,7 +1771,7 @@ func startMonitoringAction(
   intervalEndDelayMs: Int?,
   triggeredBy: String
 ) {
-  // Create date components for schedule
+
   let now = Date()
   let calendar = Calendar.current
 
@@ -1804,7 +1787,7 @@ func startMonitoringAction(
     let endDate = now.addingTimeInterval(TimeInterval(endDelayMs) / 1000.0)
     intervalEnd = calendar.dateComponents([.hour, .minute, .second], from: endDate)
   } else {
-    // Default to 24 hours from start if not specified
+
     let defaultEndMs = (intervalStartDelayMs ?? 0) + (24 * 60 * 60 * 1000)
     let endDate = now.addingTimeInterval(TimeInterval(defaultEndMs) / 1000.0)
     intervalEnd = calendar.dateComponents([.hour, .minute, .second], from: endDate)
@@ -1816,7 +1799,6 @@ func startMonitoringAction(
     repeats: false
   )
 
-  // Create DeviceActivityEvent dictionary
   var eventDict: [DeviceActivityEvent.Name: DeviceActivityEvent] = [:]
 
   for eventData in deviceActivityEvents {
@@ -1830,7 +1812,6 @@ func startMonitoringAction(
     let selection = deserializeFamilyActivitySelection(
       familyActivitySelectionStr: familyActivitySelection)
 
-    // Convert threshold to DateComponents
     var thresholdComponents = DateComponents()
     if let hour = threshold["hour"] as? Int { thresholdComponents.hour = hour }
     if let minute = threshold["minute"] as? Int { thresholdComponents.minute = minute }
@@ -1879,14 +1860,14 @@ func stopMonitoringAction(
   triggeredBy: String
 ) {
   if let activityNames = activityNames {
-    // Stop specific activities
+
     let deviceActivityNames = activityNames.map { DeviceActivityName($0) }
     center.stopMonitoring(deviceActivityNames)
     logger.log(
       "✅ Successfully stopped monitoring activities: \(activityNames.joined(separator: ", "), privacy: .public) from \(triggeredBy, privacy: .public)"
     )
   } else {
-    // Stop all monitoring
+
     center.stopMonitoring()
     logger.log("✅ Successfully stopped all monitoring from \(triggeredBy, privacy: .public)")
   }

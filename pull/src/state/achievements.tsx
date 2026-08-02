@@ -23,13 +23,13 @@ import {
 } from '@/src/services/achievements';
 import { getAttemptEvents } from '@/src/services/attempts';
 import { getCircleFocusStats } from '@/src/services/focus';
+import { withTimeoutFallback } from '@/src/lib/network';
 import { useSession } from '@/src/state/session';
 import { CelebrationOverlay } from '@/src/components/CelebrationOverlay';
 
 type AchievementsContextValue = {
   unlocked: UnlockedMap;
   metrics: AchievementMetrics;
-  /** Recompute metrics and celebrate any newly-crossed thresholds. */
   evaluate: () => Promise<void>;
 };
 
@@ -42,7 +42,6 @@ function dateKey(d: Date): string {
   return `${y}-${m}-${day}`;
 }
 
-/** Consecutive days (up to today) with at least one resist. */
 function computeStreak(dates: Set<string>): number {
   let streak = 0;
   const cursor = new Date();
@@ -65,6 +64,10 @@ export function AchievementsProvider({ children }: { children: React.ReactNode }
   const [metrics, setMetrics] = useState<AchievementMetrics>(EMPTY_METRICS);
   const [queue, setQueue] = useState<Achievement[]>([]);
   const [current, setCurrent] = useState<Achievement | null>(null);
+  const lastFocusMetrics = React.useRef({
+    focusMinutes: EMPTY_METRICS.focusMinutes,
+    focusSessions: EMPTY_METRICS.focusSessions,
+  });
 
   const computeMetrics = useCallback(async (): Promise<AchievementMetrics> => {
     const events = await getAttemptEvents(365);
@@ -74,16 +77,19 @@ export function AchievementsProvider({ children }: { children: React.ReactNode }
     );
     const streak = computeStreak(resistDates);
 
-    let focusMinutes = 0;
-    let focusSessions = 0;
+    let { focusMinutes, focusSessions } = lastFocusMetrics.current;
     if (circleId && userId) {
       try {
-        const rows = await getCircleFocusStats(circleId, 'all');
-        const me = rows.find((row) => row.userId === userId);
-        focusMinutes = me?.focusMinutes ?? 0;
-        focusSessions = me?.sessions ?? 0;
+        const rows = await withTimeoutFallback<
+          Awaited<ReturnType<typeof getCircleFocusStats>> | null
+        >(getCircleFocusStats(circleId, 'all'), 2_000, null);
+        if (rows !== null) {
+          const me = rows.find((row) => row.userId === userId);
+          focusMinutes = me?.focusMinutes ?? 0;
+          focusSessions = me?.sessions ?? 0;
+          lastFocusMetrics.current = { focusMinutes, focusSessions };
+        }
       } catch {
-        // ignore — focus achievements just won't progress this pass
       }
     }
     return { resists, streak, focusMinutes, focusSessions };
@@ -99,7 +105,6 @@ export function AchievementsProvider({ children }: { children: React.ReactNode }
       const updated = await markUnlocked(newly.map((a) => a.id));
       setUnlocked(updated);
       if (seeded) {
-        // Only celebrate after the first-run backlog has been seeded silently.
         setQueue((q) => [...q, ...newly]);
       }
     } else {
@@ -110,7 +115,6 @@ export function AchievementsProvider({ children }: { children: React.ReactNode }
     }
   }, [computeMetrics]);
 
-  // Evaluate on sign-in and whenever the app returns to the foreground.
   useEffect(() => {
     if (!userId) {
       setUnlocked({});
@@ -126,7 +130,6 @@ export function AchievementsProvider({ children }: { children: React.ReactNode }
     return () => sub.remove();
   }, [userId, evaluate]);
 
-  // Surface celebrations one at a time.
   useEffect(() => {
     if (!current && queue.length) {
       setCurrent(queue[0]);

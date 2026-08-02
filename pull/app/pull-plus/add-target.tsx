@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import {
   AppSelectionBody,
   appSelectionPrimaryAction,
+  appSelectionSecondaryAction,
   useAppSelection,
 } from '@/src/components/protection/AppSelectionStep';
 import { ManageScaffold, Accent } from '@/src/components/protection/ManageScaffold';
@@ -33,7 +34,7 @@ export default function ManageProtectionScreen() {
     step === 'select' ? (
       selection.phase === 'native' ? (
         <Text>
-          What apps <Accent>pull you in?</Accent>
+          What apps <Accent>distract you?</Accent>
         </Text>
       ) : selection.phase === 'unavailable' ? (
         <Text>
@@ -50,19 +51,19 @@ export default function ManageProtectionScreen() {
       </Text>
     ) : (
       <Text>
-        How should Pull help you <Accent>come back?</Accent>
+        How should ScreenNudge help you <Accent>come back?</Accent>
       </Text>
     );
 
   const subtitle =
     step === 'select'
       ? selection.phase === 'native'
-        ? 'Choose the apps you want Pull to protect using your device’s Screen Time picker.'
+        ? 'Choose the apps you want ScreenNudge to protect using your device’s Screen Time picker.'
         : selection.phase === 'unavailable'
-          ? 'Pull cannot protect apps without Screen Time access on this device.'
-          : 'Pull asks for Screen Time and notification access, then opens Apple’s picker so you can choose apps privately on-device.'
+          ? 'ScreenNudge cannot protect apps without Screen Time access on this device.'
+          : 'ScreenNudge asks for Screen Time and notification access, then opens Apple’s picker so you can choose apps privately on-device.'
       : step === 'limits'
-        ? 'Set a daily time limit and how many opens feel right for each app.'
+        ? 'Set the daily time limit that feels intentional. ScreenNudge adapts the pause if you keep coming back.'
         : 'Pick a protection style for your apps. You can fine-tune each app later.';
 
   const finish = async () => {
@@ -70,9 +71,12 @@ export default function ManageProtectionScreen() {
     router.back();
   };
 
+  const goPlus = () => router.push('/premium');
+  const secondaryAction = step === 'select' ? appSelectionSecondaryAction(selection, goPlus) : null;
+
   const primaryAction =
     step === 'select'
-      ? appSelectionPrimaryAction(selection, () => setStep('limits'), () => router.push('/premium'))
+      ? appSelectionPrimaryAction(selection, () => setStep('limits'))
       : step === 'limits'
         ? { label: 'Continue', onPress: () => setStep('style'), disabled: false }
         : { label: 'Save protection', onPress: finish, disabled: false };
@@ -91,8 +95,8 @@ export default function ManageProtectionScreen() {
             onPress={primaryAction.onPress}
             disabled={primaryAction.disabled}
           />
-          {step === 'select' && selection.phase === 'native' && selection.protectedCount > 0 ? (
-            <SecondaryButton label="Change selection" onPress={() => selection.setPickerVisible()} />
+          {secondaryAction ? (
+            <SecondaryButton label={secondaryAction.label} onPress={secondaryAction.onPress} />
           ) : null}
         </>
       }

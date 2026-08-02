@@ -1,4 +1,4 @@
--- Pull: account-backed protection preferences.
+-- ScreenNudge: account-backed protection preferences.
 --
 -- The actual Screen Time app selection is device-bound and remains local. These
 -- rows only sync portable preferences: default limit, opens/day, nudge mode, and

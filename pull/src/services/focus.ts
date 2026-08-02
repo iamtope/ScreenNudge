@@ -1,4 +1,5 @@
 import { supabase } from '@/src/lib/supabase';
+import { normalizedDisplayName } from '@/src/lib/brand';
 import { isLikelyNetworkError } from '@/src/lib/network';
 import { toneForId } from '@/src/services/circle';
 
@@ -6,8 +7,8 @@ export type FocusSession = {
   id: string;
   userId: string;
   circleId: string;
-  startedAt: string; // ISO
-  expectedEndAt: string; // ISO
+  startedAt: string;
+  expectedEndAt: string;
   targetMinutes: number;
   endedAt: string | null;
   enforced: boolean;
@@ -64,6 +65,9 @@ type StatRow = {
   last_at: string | null;
 };
 
+const focusStatsCache = new Map<string, FocusStatRow[]>();
+const roomCache = new Map<string, FocusRoomMember[]>();
+
 function toFocusSession(row: SessionRow): FocusSession {
   return {
     id: row.id,
@@ -108,12 +112,10 @@ export async function endFocus(
   }
 }
 
-/** Mark a session as Screen-Time-enforced (best-effort; RLS scopes it to own rows). */
 export async function markEnforced(sessionId: string): Promise<void> {
   await supabase.from('focus_sessions').update({ enforced: true }).eq('id', sessionId);
 }
 
-/** The caller's own active (not-yet-ended) session, if any. */
 export async function getMyActiveSession(): Promise<FocusSession | null> {
   try {
     const { data, error } = await supabase.rpc('get_my_active_session');
@@ -136,27 +138,28 @@ export async function getMyActiveSession(): Promise<FocusSession | null> {
   }
 }
 
-/** Live sessions of co-members in a circle (server computes liveness + elapsed). */
 export async function getRoomActiveSessions(circleId: string): Promise<FocusRoomMember[]> {
   try {
     const { data, error } = await supabase.rpc('get_room_active_sessions', {
       p_circle_id: circleId,
     });
     if (error || !data) {
-      return [];
+      return roomCache.get(circleId) ?? [];
     }
-    return (data as RoomRow[]).map((row) => ({
+    const rows = (data as RoomRow[]).map((row) => ({
       sessionId: row.id,
       userId: row.user_id,
-      displayName: row.display_name?.trim() || 'Pull user',
+      displayName: normalizedDisplayName(row.display_name),
       startedAt: row.started_at,
       expectedEndAt: row.expected_end_at,
       targetMinutes: row.target_minutes,
       elapsedMin: row.elapsed_min,
       tone: toneForId(row.user_id),
     }));
+    roomCache.set(circleId, rows);
+    return rows;
   } catch {
-    return [];
+    return roomCache.get(circleId) ?? [];
   }
 }
 
@@ -164,32 +167,29 @@ export async function getCircleFocusStats(
   circleId: string,
   window: FocusStatWindow,
 ): Promise<FocusStatRow[]> {
+  const cacheKey = `${circleId}:${window}`;
   try {
     const { data, error } = await supabase.rpc('get_circle_focus_stats', {
       p_circle_id: circleId,
       p_window: window,
     });
     if (error || !data) {
-      return [];
+      return focusStatsCache.get(cacheKey) ?? [];
     }
-    return (data as StatRow[]).map((row) => ({
+    const rows = (data as StatRow[]).map((row) => ({
       userId: row.user_id,
-      displayName: row.display_name?.trim() || 'Pull user',
+      displayName: normalizedDisplayName(row.display_name),
       sessions: row.sessions,
       focusMinutes: row.focus_minutes,
       lastAt: row.last_at,
     }));
+    focusStatsCache.set(cacheKey, rows);
+    return rows;
   } catch {
-    return [];
+    return focusStatsCache.get(cacheKey) ?? [];
   }
 }
 
-/**
- * Subscribe to focus changes in a circle. Realtime is used purely as a "something
- * changed, refetch" trigger (payloads are ignored) — a silently-expired session
- * produces no event, so the room view must re-derive liveness against the clock.
- * Returns an unsubscribe function.
- */
 export function subscribeRoom(circleId: string, onChange: () => void): () => void {
   const channel = supabase
     .channel(`focus:circle:${circleId}`)

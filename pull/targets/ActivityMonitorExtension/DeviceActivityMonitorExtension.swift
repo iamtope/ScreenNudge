@@ -1,9 +1,4 @@
-//
-//  DeviceActivityMonitorExtension.swift
-//  ActivityMonitorExtension
-//
-//  Created by Robert Herber on 2023-07-05.
-//
+
 
 import DeviceActivity
 import FamilyControls
@@ -17,10 +12,19 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     super.intervalDidStart(for: activity)
     logger.log("intervalDidStart")
 
+    prepareScreenNudgeProtectionCallback(
+      activityName: activity.rawValue,
+      callbackName: "intervalDidStart"
+    )
+
     self.executeActionsForEvent(
       activityName: activity.rawValue,
       callbackName: "intervalDidStart",
       eventName: nil
+    )
+
+    reconcileScreenNudgeProtection(
+      triggeredBy: "screennudge_\(activity.rawValue)_intervalDidStart"
     )
 
     persistToUserDefaults(
@@ -35,10 +39,19 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     super.intervalDidEnd(for: activity)
     logger.log("intervalDidEnd")
 
+    prepareScreenNudgeProtectionCallback(
+      activityName: activity.rawValue,
+      callbackName: "intervalDidEnd"
+    )
+
     self.executeActionsForEvent(
       activityName: activity.rawValue,
       callbackName: "intervalDidEnd",
       eventName: nil
+    )
+
+    reconcileScreenNudgeProtection(
+      triggeredBy: "screennudge_\(activity.rawValue)_intervalDidEnd"
     )
 
     persistToUserDefaults(
@@ -126,10 +139,20 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     super.eventDidReachThreshold(event, activity: activity)
     logger.log("eventDidReachThreshold: \(event.rawValue, privacy: .public)")
 
+    prepareScreenNudgeProtectionCallback(
+      activityName: activity.rawValue,
+      callbackName: "eventDidReachThreshold",
+      eventName: event.rawValue
+    )
+
     self.executeActionsForEvent(
       activityName: activity.rawValue,
       callbackName: "eventDidReachThreshold",
       eventName: event.rawValue
+    )
+
+    reconcileScreenNudgeProtection(
+      triggeredBy: "screennudge_\(activity.rawValue)_eventDidReachThreshold"
     )
 
     persistToUserDefaults(

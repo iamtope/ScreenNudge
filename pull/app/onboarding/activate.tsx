@@ -19,7 +19,7 @@ export default function ActivateScreen() {
         Alert.alert(
           'Could not activate',
           result.message ??
-            'Screen Time blocking could not start. On a real iPhone, pick apps again in onboarding, then tap Activate.',
+            'Screen Time protection could not start. Choose your apps again and retry.',
         );
         return;
       }
@@ -32,9 +32,8 @@ export default function ActivateScreen() {
   const summary = [
     `${protectedCount} protected app${protectedCount === 1 ? '' : 's'} selected`,
     'Apps stay usable until your daily limit',
-    'After the limit, opening one brings up your Pull pause',
-    'Your nudge mode sets how much friction the pause has',
-    'Social rescue available',
+    'After the limit, opening one brings up your ScreenNudge pause',
+    'Your nudge mode sets how much friction the pause has'
   ];
 
   return (
@@ -42,13 +41,13 @@ export default function ActivateScreen() {
       step="activate"
       title={
         <Text>
-          Pull is <Accent>ready.</Accent>
+          ScreenNudge is <Accent>ready.</Accent>
         </Text>
       }
-      subtitle="Your apps work normally until you hit your daily limit. After that, Screen Time hands you to Pull for a pause before you continue."
+      subtitle="Your apps work normally until you hit your daily limit. After that, Screen Time hands you to ScreenNudge for a pause before you continue."
       footer={
         <>
-          <PrimaryButton label={busy ? 'Activating…' : 'Activate Pull'} onPress={activate} />
+          <PrimaryButton label={busy ? 'Activating…' : 'Activate ScreenNudge'} onPress={activate} />
           <SecondaryButton label="Edit Settings" onPress={() => router.push('/onboarding/plan')} />
         </>
       }

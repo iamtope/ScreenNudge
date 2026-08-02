@@ -12,7 +12,7 @@ export default function ProtectionStyleScreen() {
       step="protection-style"
       title={
         <Text>
-          How should Pull help you <Accent>come back?</Accent>
+          How should ScreenNudge help you <Accent>come back?</Accent>
         </Text>
       }
       subtitle="Pick a protection style for your apps. You can fine-tune each app later."

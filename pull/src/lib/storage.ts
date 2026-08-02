@@ -11,9 +11,19 @@ export async function writePullPlusFlag(active: boolean): Promise<void> {
   await AsyncStorage.setItem(PULL_PLUS_KEY, active ? 'true' : 'false');
 }
 
+export const ONBOARDING_COMPLETE_KEY = 'pull:onboardingComplete';
+
+export async function readOnboardingComplete(): Promise<boolean> {
+  const value = await AsyncStorage.getItem(ONBOARDING_COMPLETE_KEY);
+  return value === 'true';
+}
+
+export async function writeOnboardingComplete(complete: boolean): Promise<void> {
+  await AsyncStorage.setItem(ONBOARDING_COMPLETE_KEY, complete ? 'true' : 'false');
+}
+
 export const PACER_ENABLED_KEY = 'pull:pacerEnabled';
 
-/** The pacer bot is on by default; only an explicit "false" turns it off. */
 export async function readPacerEnabledFlag(): Promise<boolean> {
   const value = await AsyncStorage.getItem(PACER_ENABLED_KEY);
   return value !== 'false';
@@ -25,7 +35,6 @@ export async function writePacerEnabledFlag(enabled: boolean): Promise<void> {
 
 export const HIDDEN_MEMBERS_KEY = 'pull:hiddenMembers';
 
-/** Member/bot ids the user has hidden from their circle leaderboard. */
 export async function readHiddenMembers(): Promise<string[]> {
   try {
     const raw = await AsyncStorage.getItem(HIDDEN_MEMBERS_KEY);

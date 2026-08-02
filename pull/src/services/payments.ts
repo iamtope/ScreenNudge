@@ -19,10 +19,8 @@ export type PullPlusPurchaseResult = {
   plan: PullPlan;
 };
 
-/** App Store Connect → Subscriptions → group `ScreenNudge_plus` */
 export const PULL_PLUS_SUBSCRIPTION_GROUP = 'ScreenNudge_plus';
 
-/** Product IDs from App Store Connect (not reference names). */
 export const PULL_PLUS_SKU_MONTHLY = 'spm';
 export const PULL_PLUS_SKU_ANNUAL = 'spy';
 export const PULL_PLUS_PRODUCT_IDS = [PULL_PLUS_SKU_MONTHLY, PULL_PLUS_SKU_ANNUAL] as const;
@@ -117,21 +115,11 @@ export async function ensurePullPlusProduct(productId: string): Promise<ProductS
   const products = await fetchPullPlusProducts();
   const found = products.find((product) => productSku(product) === productId);
   if (!found) {
-    const loaded = products.map(productSku).join(', ') || 'none';
-    throw new Error(
-      `SKU not found: "${productId}". StoreKit returned: [${loaded}]. In App Store Connect (group ScreenNudge_plus), product IDs must be spm (monthly) and spy (yearly). Complete metadata until status is not Missing Metadata. See docs/IAP_SETUP.md.`,
-    );
+    throw new Error('This ScreenNudge+ plan is temporarily unavailable. Try again shortly.');
   }
   return found;
 }
 
-/**
- * Tri-state entitlement so callers can revoke a genuinely-lapsed subscription
- * WITHOUT revoking on a transient StoreKit error / offline launch:
- * - 'active'   → StoreKit confirms an active Pull+ subscription
- * - 'inactive' → StoreKit confirms there is none (lapsed / cancelled / refunded)
- * - 'unknown'  → couldn't check (error, offline, web) — don't change entitlement
- */
 export type PullPlusEntitlement = 'active' | 'inactive' | 'unknown';
 
 export async function getPullPlusEntitlement(): Promise<PullPlusEntitlement> {
@@ -168,8 +156,6 @@ export async function startPullPlusPurchase(
     requestPurchase({
       type: 'subs',
       request: {
-        // appAccountToken ties the StoreKit transaction to the Supabase user id so
-        // the server-side notification webhook can attribute renew/expire/refund.
         apple: { sku: productId, ...(appAccountToken ? { appAccountToken } : {}) },
         google: { skus: [productId] },
       },

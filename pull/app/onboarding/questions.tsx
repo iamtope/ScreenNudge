@@ -21,7 +21,7 @@ export default function QuestionsScreen() {
           A few things about <Accent>your scrolling.</Accent>
         </Text>
       }
-      subtitle="Answer these so Pull can personalize your protection. You can change anything later."
+      subtitle="Answer these so ScreenNudge can personalize your protection. You can change anything later."
       footer={
         <>
           <PrimaryButton

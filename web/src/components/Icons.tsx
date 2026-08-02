@@ -1,6 +1,6 @@
 import type { SVGProps } from 'react';
 
-/** The pull brand mark — an upward chevron ("pull yourself back up"). */
+/** The ScreenNudge brand mark — an upward chevron. */
 export function BrandMark({ color = 'var(--brass)', ...props }: SVGProps<SVGSVGElement> & { color?: string }) {
   return (
     <svg viewBox="0 0 100 100" aria-hidden="true" {...props}>

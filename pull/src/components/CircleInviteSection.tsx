@@ -7,19 +7,11 @@ import { useSession } from '@/src/state/session';
 import { palette } from '@/src/theme/palette';
 
 type CircleInviteSectionProps = {
-  /** When false, invite actions route to sign-in first. */
   canInvite?: boolean;
   onRequireSignIn?: () => void;
   compact?: boolean;
 };
 
-/**
- * StepUp-style circle pairing:
- * - Every user has their own code (like a friend ID).
- * - Share YOUR code → friends join YOUR circle.
- * - Enter a FRIEND'S code → you join THEIR circle.
- * Only one path is needed per friendship (usually whoever invites first).
- */
 export function CircleInviteSection({
   canInvite = true,
   onRequireSignIn,
@@ -44,7 +36,7 @@ export function CircleInviteSection({
       if (!code) {
         Alert.alert(
           'Invite unavailable',
-          'We could not load your invite code. Try signing out and back in. If it persists, your account may need a one-time setup in Supabase (see supabase/migrations/003).',
+          'We could not load your invite code. Refresh your account and try again.',
         );
         return;
       }

@@ -1,9 +1,4 @@
-//
-//  ShieldConfigurationExtension.swift
-//  ShieldConfiguration
-//
-//  Created by Robert Herber on 2024-10-25.
-//
+
 
 import Foundation
 import ManagedSettings
@@ -36,13 +31,11 @@ func loadImageFromAppGroupDirectory(relativeFilePath: String) -> UIImage? {
 
   let fileURL = appGroupDirectory!.appendingPathComponent(relativeFilePath)
 
-  // Load the image data
   guard let imageData = try? Data(contentsOf: fileURL) else {
-    print("Error: Could not load data from \(fileURL.path)")
+
     return nil
   }
 
-  // Create and return the UIImage
   return UIImage(data: imageData)
 }
 
@@ -119,12 +112,8 @@ func buildShield(placeholders: [String: String?], config: [String: Any]?)
   return ShieldConfiguration()
 }
 
-// Override the functions below to customize the shields used in various situations.
-// The system provides a default appearance for any methods that your subclass doesn't override.
-// Make sure that your class name matches the NSExtensionPrincipalClass in your Info.plist.
 class ShieldConfigurationExtension: ShieldConfigurationDataSource {
   override func configuration(shielding application: Application) -> ShieldConfiguration {
-    // Customize the shield as needed for applications.
 
     let config = getActivitySelectionPrefixedConfigFromUserDefaults(
       keyPrefix: SHIELD_CONFIGURATION_FOR_SELECTION_PREFIX,

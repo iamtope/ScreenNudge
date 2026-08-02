@@ -1,4 +1,4 @@
--- Pull: profiles, circles, invite/join
+-- ScreenNudge: profiles, circles, invite/join
 -- Run in Supabase SQL Editor after enabling Apple + Google auth providers.
 
 -- ---------------------------------------------------------------------------
@@ -119,7 +119,7 @@ begin
     new.raw_user_meta_data ->> 'full_name',
     new.raw_user_meta_data ->> 'name',
     split_part(new.email, '@', 1),
-    'Pull user'
+    'ScreenNudge user'
   );
 
   insert into public.profiles (id, display_name, invite_code)

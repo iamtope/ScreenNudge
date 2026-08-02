@@ -9,16 +9,18 @@ import Animated, {
   runOnJS,
 } from 'react-native-reanimated';
 
-import type { Achievement } from '@/src/domain/achievements';
+import type { Celebration } from '@/src/domain/achievements';
 import * as Haptics from '@/src/lib/haptics';
 import { palette } from '@/src/theme/palette';
 
 export function CelebrationOverlay({
   achievement,
   onDone,
+  eyebrow = 'Achievement unlocked',
 }: {
-  achievement: Achievement | null;
+  achievement: Celebration | null;
   onDone: () => void;
+  eyebrow?: string;
 }) {
   const progress = useSharedValue(0);
   const scale = useSharedValue(0.6);
@@ -43,7 +45,6 @@ export function CelebrationOverlay({
     Haptics.celebrate();
     const timer = setTimeout(dismiss, 2800);
     return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [achievement?.id]);
 
   const backdropStyle = useAnimatedStyle(() => ({ opacity: progress.value }));
@@ -61,7 +62,7 @@ export function CelebrationOverlay({
       <Pressable style={styles.fill} onPress={dismiss}>
         <Animated.View style={[styles.backdrop, backdropStyle]} />
         <Animated.View style={[styles.card, cardStyle]}>
-          <Text style={styles.eyebrow}>Achievement unlocked</Text>
+          <Text style={styles.eyebrow}>{eyebrow}</Text>
           <MaterialCommunityIcons
             name={achievement.icon}
             size={60}

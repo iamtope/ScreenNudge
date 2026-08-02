@@ -3,11 +3,17 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Screen } from '@/src/components/Screen';
-import { getAttemptEvents, type AttemptEvent } from '@/src/services/attempts';
+import {
+  getAttemptEvents,
+  getLocalAttemptEvents,
+  type AttemptEvent,
+} from '@/src/services/attempts';
 import { getCircleFocusStats, type FocusStatWindow } from '@/src/services/focus';
 import { useSession } from '@/src/state/session';
 import { useAccess } from '@/src/state/access';
 import { computeTimeSaved, formatTimeSaved } from '@/src/domain/timeSaved';
+import { withTimeoutFallback } from '@/src/lib/network';
+import { isScreenTimeReportAvailable } from '@/modules/screen-time-report';
 import { palette } from '@/src/theme/palette';
 
 type Glyph = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
@@ -45,7 +51,6 @@ type PeriodStat = {
   rate: number | null;
 };
 
-/** A compact, gamified insight tile. */
 type Tile = {
   icon: Glyph;
   label: string;
@@ -61,12 +66,21 @@ const WINDOW_OPTIONS: WindowOption[] = [
   { id: 'month', label: 'Month', focusWindow: 'month' },
 ];
 
-/** Number of days of history to load (covers the widest window). */
 const LOAD_DAYS = 31;
+const cachedFocusMinutes = new Map<string, number>();
+
+function mergeAttemptEvents(...groups: AttemptEvent[][]): AttemptEvent[] {
+  const byId = new Map<string, AttemptEvent>();
+  for (const event of groups.flat()) {
+    byId.set(event.id, event);
+  }
+  return [...byId.values()].sort(
+    (a, b) => new Date(a.occurredAt).getTime() - new Date(b.occurredAt).getTime(),
+  );
+}
 
 type Range = { since: number; until: number };
 
-/** Local time range for each window (since inclusive, until exclusive). */
 function windowRange(id: WindowId): Range {
   const midnight = new Date();
   midnight.setHours(0, 0, 0, 0);
@@ -188,7 +202,6 @@ function plural(value: number, singular: string): string {
   return `${value} ${singular}${value === 1 ? '' : 's'}`;
 }
 
-/** Gamified tier earned by the resist rate. */
 function resistTier(rate: number | null): { label: string; icon: Glyph; color: string } {
   if (rate === null) return { label: 'No data yet', icon: 'progress-question', color: palette.textMute };
   if (rate >= 90) return { label: 'Unscrollable', icon: 'shield-star', color: palette.brass };
@@ -202,35 +215,76 @@ export default function InsightsScreen() {
   const { circle, user } = useSession();
   const { isPullPlus } = useAccess();
   const [windowId, setWindowId] = useState<WindowId>('today');
-  const [events, setEvents] = useState<AttemptEvent[]>([]);
+  const [eventState, setEventState] = useState<{
+    cacheKey: string;
+    events: AttemptEvent[];
+  }>({ cacheKey: 'device', events: [] });
   const [focusMinutes, setFocusMinutes] = useState(0);
-  const [loading, setLoading] = useState(true);
-
   const windowOption = WINDOW_OPTIONS.find((option) => option.id === windowId) ?? WINDOW_OPTIONS[1];
+  const circleId = circle?.circleId ?? null;
+  const userId = user?.id ?? null;
+  const eventsCacheKey = userId ?? 'device';
+  const events = eventState.cacheKey === eventsCacheKey ? eventState.events : [];
+  const focusCacheKey = `${circleId ?? 'local'}:${userId ?? 'guest'}:${windowOption.focusWindow}`;
 
   useFocusEffect(
     useCallback(() => {
       let active = true;
-      setLoading(true);
+      const cachedFocus = cachedFocusMinutes.get(focusCacheKey);
+      setFocusMinutes(cachedFocus ?? 0);
 
-      void (async () => {
-        const loadedEvents = await getAttemptEvents(LOAD_DAYS);
-        let nextFocusMinutes = 0;
-        if (circle?.circleId && user?.id) {
-          const rows = await getCircleFocusStats(circle.circleId, windowOption.focusWindow);
-          nextFocusMinutes = rows.find((row) => row.userId === user.id)?.focusMinutes ?? 0;
+      void getLocalAttemptEvents(LOAD_DAYS).then((localEvents) => {
+        if (!active) {
+          return;
         }
-        if (active) {
-          setEvents(loadedEvents);
-          setFocusMinutes(nextFocusMinutes);
-          setLoading(false);
-        }
-      })();
+        setEventState((current) => ({
+          cacheKey: eventsCacheKey,
+          events: mergeAttemptEvents(
+            current.cacheKey === eventsCacheKey ? current.events : [],
+            localEvents,
+          ),
+        }));
+      });
+
+      const focusRequest =
+        circleId && userId
+          ? withTimeoutFallback<Awaited<ReturnType<typeof getCircleFocusStats>> | null>(
+              getCircleFocusStats(circleId, windowOption.focusWindow),
+              2_000,
+              null,
+            )
+          : Promise.resolve(null);
+
+      void Promise.all([getAttemptEvents(LOAD_DAYS), focusRequest]).then(
+        ([loadedEvents, rows]) => {
+          if (!active) {
+            return;
+          }
+          setEventState((current) => ({
+            cacheKey: eventsCacheKey,
+            events: mergeAttemptEvents(
+              current.cacheKey === eventsCacheKey ? current.events : [],
+              loadedEvents,
+            ),
+          }));
+          if (rows !== null && userId) {
+            const next = rows.find((row) => row.userId === userId)?.focusMinutes ?? 0;
+            cachedFocusMinutes.set(focusCacheKey, next);
+            setFocusMinutes(next);
+          }
+        },
+      );
 
       return () => {
         active = false;
       };
-    }, [circle?.circleId, user?.id, windowOption.focusWindow]),
+    }, [
+      circleId,
+      eventsCacheKey,
+      focusCacheKey,
+      userId,
+      windowOption.focusWindow,
+    ]),
   );
 
   const windowEvents = useMemo(() => filterByRange(events, windowRange(windowId)), [events, windowId]);
@@ -263,7 +317,7 @@ export default function InsightsScreen() {
       icon: 'cellphone-lock',
       label: 'Top temptation',
       value: target ? target.name : '—',
-      sub: target ? plural(target.count, 'pull') : 'No target yet',
+      sub: target ? plural(target.count, 'attempt') : 'No target yet',
       tone: palette.brass,
     },
     {
@@ -275,9 +329,9 @@ export default function InsightsScreen() {
     },
     {
       icon: 'alert-circle-outline',
-      label: 'Over budget',
+      label: 'Repeat attempts',
       value: String(overLimitAttempts),
-      sub: overLimitAttempts > 0 ? 'past your opens' : 'none — nice',
+      sub: overLimitAttempts > 0 ? 'adaptive friction' : 'none — nice',
       tone: overLimitAttempts > 0 ? palette.rose : palette.green,
     },
   ];
@@ -286,7 +340,7 @@ export default function InsightsScreen() {
     <Screen edges={['top']}>
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
-          <Text style={styles.eyebrow}>{loading ? 'Refreshing' : windowOption.label}</Text>
+          <Text style={styles.eyebrow}>{windowOption.label}</Text>
           <Text style={styles.title}>
             What your <Text style={styles.accent}>attention shows.</Text>
           </Text>
@@ -306,14 +360,23 @@ export default function InsightsScreen() {
           ))}
         </View>
 
-        {/* Gamified resist-rate hero */}
+        {isScreenTimeReportAvailable ? (
+          <Pressable onPress={() => router.push('/screen-time')} style={styles.appleRow}>
+            <View style={styles.appleIcon}>
+              <MaterialCommunityIcons name="cellphone-cog" size={20} color={palette.brass} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.appleTitle}>Apple Screen Time</Text>
+              <Text style={styles.appleSub}>Hours, pickups and notifications.</Text>
+            </View>
+            <MaterialCommunityIcons name="chevron-right" size={20} color={palette.textMute} />
+          </Pressable>
+        ) : null}
+
         <View style={styles.hero}>
           <View style={styles.heroLeft}>
             <Text style={styles.heroEyebrow}>Resist rate</Text>
             <Text style={styles.heroPercent}>{formatRate(summary.successRate)}</Text>
-            <Text style={styles.heroSub}>
-              {summary.resists} resisted · {summary.opens} opened
-            </Text>
           </View>
           <View style={[styles.tierBadge, { borderColor: tier.color }]}>
             <MaterialCommunityIcons name={tier.icon} size={26} color={tier.color} />
@@ -321,7 +384,6 @@ export default function InsightsScreen() {
           </View>
         </View>
 
-        {/* Estimated time saved — Pull+ (locked teaser for free) */}
         {isPullPlus ? (
           <View style={styles.savedCard}>
             <View style={styles.savedIcon}>
@@ -331,7 +393,7 @@ export default function InsightsScreen() {
               <Text style={styles.savedLabel}>Estimated time saved</Text>
               <Text style={styles.savedValue}>{formatTimeSaved(timeSaved.minutes)}</Text>
               <Text style={styles.savedSub}>
-                {timeSaved.episodes} resisted episode{timeSaved.episodes === 1 ? '' : 's'} 
+                {timeSaved.episodes} resisted episode{timeSaved.episodes === 1 ? '' : 's'}
               </Text>
             </View>
           </View>
@@ -343,7 +405,7 @@ export default function InsightsScreen() {
             <View style={{ flex: 1 }}>
               <Text style={styles.savedLabel}>Estimated time saved</Text>
               <Text style={styles.savedLockedTitle}>See the time you’ve won back</Text>
-              <Text style={styles.savedUpgrade}>Unlock with Pull+</Text>
+              <Text style={styles.savedUpgrade}>Unlock with ScreenNudge+</Text>
             </View>
             <MaterialCommunityIcons name="chevron-right" size={20} color={palette.textMute} />
           </Pressable>
@@ -352,7 +414,7 @@ export default function InsightsScreen() {
         <View style={styles.stats}>
           <Stat label="Attempts" value={String(summary.attempts)} />
           <Stat label="Resists" value={String(summary.resists)} />
-          <Stat label="Opens" value={String(summary.opens)} />
+          <Stat label="Unlocks" value={String(summary.opens)} />
           <Stat label="Focus" value={formatMinutes(focusMinutes)} />
         </View>
 
@@ -381,6 +443,7 @@ export default function InsightsScreen() {
             </Text>
           </View>
         )}
+
       </ScrollView>
     </Screen>
   );
@@ -608,4 +671,25 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   emptyText: { color: palette.textSoft, fontSize: 15, lineHeight: 21, textAlign: 'center' },
+  appleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    borderWidth: 1,
+    borderColor: palette.line,
+    borderRadius: 12,
+    backgroundColor: palette.surface,
+    padding: 14,
+    marginTop: 4,
+  },
+  appleIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: palette.brassSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  appleTitle: { color: palette.text, fontSize: 16, fontWeight: '700' },
+  appleSub: { color: palette.textMute, fontSize: 13, lineHeight: 18, marginTop: 2 },
 });

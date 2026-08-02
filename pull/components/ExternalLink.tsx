@@ -8,14 +8,10 @@ export function ExternalLink(props: Omit<ComponentProps<typeof Link>, 'href'> & 
     <Link
       target="_blank"
       {...props}
-      // ExternalLink always points at an off-app URL, which typedRoutes' Href
-      // union doesn't model — cast the validated string through.
       href={props.href as ComponentProps<typeof Link>['href']}
       onPress={(e) => {
         if (Platform.OS !== 'web') {
-          // Prevent the default behavior of linking to the default browser on native.
           e.preventDefault();
-          // Open the link in an in-app browser.
           WebBrowser.openBrowserAsync(props.href as string);
         }
       }}

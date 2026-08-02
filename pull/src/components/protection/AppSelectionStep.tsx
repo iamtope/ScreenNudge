@@ -28,7 +28,6 @@ export function useAppSelection() {
     usingScreenTime ? 'native' : 'intro',
   );
   const [pickerVisible, setPickerVisible] = useState(false);
-  /** Count before opening the picker — used when the user cancels or native emits a transient empty selection. */
   const countBeforePickerRef = useRef(0);
 
   const AppPicker = getAppPickerComponentPersisted();
@@ -54,7 +53,6 @@ export function useAppSelection() {
     nativeEvent?: { applicationCount?: number };
   }) => {
     const count = event?.nativeEvent?.applicationCount ?? 0;
-    // Remounting the picker can briefly report 0 and wipe persisted storage in native code.
     if (count > 0) {
       setScreenTimeAppCount(count);
     }
@@ -87,9 +85,7 @@ export function useAppSelection() {
     handleNativeSelection,
     handlePickerDismiss,
     canContinue,
-    /** Free user is at/over the guarded-app cap — can't add more without Pull+. */
     limitReached: !canAddMore,
-    /** Free user picked more than the cap (Screen Time path; grandfathered). */
     overFreeLimit: overLimit,
   };
 }
@@ -126,7 +122,7 @@ export function AppSelectionBody(props: BodyProps & { onUpgrade: () => void }) {
         <Pressable onPress={onUpgrade} style={styles.upsell}>
           <MaterialCommunityIcons name="lock-open-outline" size={18} color={palette.brass} />
           <Text style={styles.upsellText}>
-            Pull Free guards {FREE_GUARDED_APP_LIMIT} apps. <Text style={styles.upsellLink}>Upgrade to Pull+ for unlimited.</Text>
+            ScreenNudge Free guards {FREE_GUARDED_APP_LIMIT} apps. <Text style={styles.upsellLink}>Upgrade to premium for unlimited.</Text>
           </Text>
         </Pressable>
       ) : null}
@@ -138,7 +134,7 @@ export function AppSelectionBody(props: BodyProps & { onUpgrade: () => void }) {
             <View style={styles.radarCore} />
           </View>
           <Text style={styles.centerText}>
-            Tap “Find My Apps” to open Apple’s Screen Time picker and choose the apps Pull should protect. Nothing leaves your device.
+            Tap “Find My Apps” to open Apple’s Screen Time picker and choose the apps ScreenNudge should protect. Nothing leaves your device.
           </Text>
         </View>
       ) : null}
@@ -158,7 +154,7 @@ export function AppSelectionBody(props: BodyProps & { onUpgrade: () => void }) {
           </View>
           <Text style={styles.centerText}>
             {screenTimeAppCount
-              ? 'These apps are protected by Pull via Screen Time.'
+              ? 'These apps are protected by ScreenNudge via Screen Time.'
               : 'Open the Screen Time picker to choose the apps you want to protect.'}
           </Text>
         </View>
@@ -170,7 +166,7 @@ export function AppSelectionBody(props: BodyProps & { onUpgrade: () => void }) {
             <MaterialCommunityIcons name="shield-alert-outline" size={42} color={palette.brass} />
           </View>
           <Text style={styles.centerText}>
-            Pull needs Screen Time access to protect apps on this device. Allow Screen Time when prompted, then try again.
+            ScreenNudge needs Screen Time access to protect apps on this device. Allow Screen Time when prompted, then try again.
           </Text>
           <Pressable onPress={() => void findApps()} style={styles.retry}>
             <Text style={styles.retryLabel}>Try again</Text>
@@ -181,22 +177,47 @@ export function AppSelectionBody(props: BodyProps & { onUpgrade: () => void }) {
   );
 }
 
+/**
+ * The secondary action for the selection step, or null when there isn't one.
+ * Over the free limit this is the upgrade path; otherwise it re-opens the picker.
+ */
+export function appSelectionSecondaryAction(
+  selection: BodyProps,
+  onUpgrade: () => void,
+): { label: string; onPress: () => void } | null {
+  const { phase, protectedCount, setPickerVisible, overFreeLimit } = selection;
+
+  if (phase !== 'native') {
+    return null;
+  }
+  if (overFreeLimit) {
+    return { label: 'Upgrade for unlimited apps', onPress: onUpgrade };
+  }
+  if (protectedCount > 0) {
+    return { label: 'Change selection', onPress: () => setPickerVisible() };
+  }
+  return null;
+}
+
 export function appSelectionPrimaryAction(
   selection: BodyProps,
   onContinue: () => void,
-  onUpgrade: () => void,
 ): { label: string; onPress: () => void; disabled: boolean } {
   const { phase, protectedCount, setPickerVisible, findApps, overFreeLimit } = selection;
 
   if (phase === 'native') {
     if (overFreeLimit) {
-      // Free user picked more than the cap — can't trim an opaque selection, so gate.
-      return { label: 'Upgrade to guard these', onPress: onUpgrade, disabled: false };
+      // Screen Time hands back only a count, never the identities, so we cannot
+      // trim the selection down to the free limit ourselves — only the user can,
+      // in Apple's picker. Keep that the primary way forward so upgrading stays a
+      // choice rather than the only exit.
+      return { label: 'Change selection', onPress: () => setPickerVisible(), disabled: false };
     }
     return {
       label: protectedCount
         ? `Protect ${protectedCount} app${protectedCount === 1 ? '' : 's'}`
         : 'Pick apps to continue',
+      // onPress:  onContinue,
       onPress: protectedCount ? onContinue : () => setPickerVisible(),
       disabled: false,
     };

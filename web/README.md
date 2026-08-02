@@ -1,6 +1,6 @@
-# pull — website
+# ScreenNudge — website
 
-Marketing site for **pull** (About · FAQ · Contact), built with Next.js (App Router,
+Marketing site for **ScreenNudge** (About · FAQ · Contact), built with Next.js (App Router,
 TypeScript). Warm brass identity matching the app. Seven languages wired up, with
 English as the source and the rest falling back to it until translated.
 
@@ -22,11 +22,11 @@ Everything you need to personalise lives in **`src/config/site.ts`**:
 | Field | What to set |
 |-------|-------------|
 | `email` | Your real support address (currently `hello@pull.app`) |
-| `appStore.available` | Flip to `true` once live — this turns every "Get pull" button into a real App Store link |
+| `appStore.available` | Flip to `true` once live — this turns every "Get ScreenNudge" button into a real App Store link |
 | `appStore.url` | Your App Store listing URL |
 | `minIOS`, `copyrightYear`, `social` | Self-explanatory |
 
-Until `appStore.available` is `true`, "Get pull" buttons route to the Contact page and the
+Until `appStore.available` is `true`, "Get ScreenNudge" buttons route to the Contact page and the
 home CTA shows "Coming soon to the App Store."
 
 One more: the founder story in `src/i18n/messages/en.ts` → `home.mission.body` is a
@@ -46,7 +46,7 @@ Open e.g. `src/i18n/messages/nl.ts` and override only the keys you want:
 
 ```ts
 export const nl: DeepPartial<Dictionary> = {
-  nav: { about: 'Over', faq: 'FAQ', contact: 'Contact', cta: 'Download pull' },
+  nav: { about: 'Over', faq: 'FAQ', contact: 'Contact', cta: 'Download ScreenNudge' },
   home: { hero: { title: 'Zet een adempauze tussen jou en de *scroll*.' } },
 };
 ```

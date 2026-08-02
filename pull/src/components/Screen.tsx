@@ -3,7 +3,6 @@ import { StyleSheet, View, ViewStyle } from 'react-native';
 import { SafeAreaView, Edge } from 'react-native-safe-area-context';
 import { palette } from '@/src/theme/palette';
 
-/** Extra space below the status bar / Dynamic Island. */
 export const SCREEN_TOP_GAP = 16;
 
 type ScreenProps = {

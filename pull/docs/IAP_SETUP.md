@@ -1,4 +1,4 @@
-# Pull+ In-App Purchases (App Store)
+# ScreenNudge+ In-App Purchases (App Store)
 
 Configured in App Store Connect under subscription group **`ScreenNudge_plus`**.
 
@@ -17,7 +17,7 @@ The **Product ID** column is what StoreKit and this app use. Reference names are
 
 ### 1. Confirm product IDs in Connect
 
-**Apps** → **Pull** → **Subscriptions** → **ScreenNudge_plus**
+**Apps** → **ScreenNudge** → **Subscriptions** → **ScreenNudge_plus**
 
 You should see:
 
@@ -69,7 +69,7 @@ Sandbox Apple ID when prompted. Premium should show real prices when `spm` / `sp
 
 ---
 
-## Entitlement model (how Pull+ unlocks)
+## Entitlement model (how ScreenNudge+ unlocks)
 
 **Primary (works today):** the device checks StoreKit (`getActiveSubscriptions`) and
 sets the `isPullPlus` gate. On launch we now distinguish three states so a

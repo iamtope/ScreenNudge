@@ -14,7 +14,6 @@ type GoogleSignInButtonProps = PressableProps & {
   label?: string;
 };
 
-/** Official Google "G" mark (multicolor). */
 function GoogleGMark({ size = 20 }: { size?: number }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 48 48">
@@ -54,7 +53,6 @@ export function GoogleSignInButton({
         styles.button,
         (disabled || loading) && styles.disabled,
         state.pressed && !disabled && !loading && styles.pressed,
-        // `style` from PressableProps may itself be a function — resolve it.
         typeof style === 'function' ? style(state) : style,
       ]}
       {...props}

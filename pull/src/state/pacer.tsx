@@ -10,9 +10,7 @@ import React, {
 import { readPacerEnabledFlag, writePacerEnabledFlag } from '@/src/lib/storage';
 
 type PacerContextValue = {
-  /** Whether the pacer bot is shown on the leaderboard + focus room. Default on. */
   enabled: boolean;
-  /** False until the persisted flag has been read. */
   ready: boolean;
   setEnabled: (value: boolean) => void;
 };
@@ -20,8 +18,6 @@ type PacerContextValue = {
 const PacerContext = createContext<PacerContextValue | null>(null);
 
 export function PacerProvider({ children }: { children: React.ReactNode }) {
-  // Optimistic default: on. Avoids a flash where the leaderboard gate is closed
-  // for an existing pacer user before storage resolves.
   const [enabled, setEnabledState] = useState(true);
   const [ready, setReady] = useState(false);
 

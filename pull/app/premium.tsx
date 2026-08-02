@@ -1,6 +1,6 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, Pressable, ScrollView } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Screen } from '@/src/components/Screen';
@@ -16,13 +16,14 @@ import { useBilling } from '@/src/state/billing';
 import { useAccess } from '@/src/state/access';
 import { useSession } from '@/src/state/session';
 import { recordSubscription } from '@/src/services/subscription';
-import { PlanComparison } from '@/src/components/PlanComparison';
+import { PLUS_FEATURES } from '@/src/domain/plan';
 import { PRIVACY_URL, TERMS_URL } from '@/src/config/legal';
 import { friendlyAccountError } from '@/src/lib/network';
 import { palette } from '@/src/theme/palette';
 
 export default function PremiumScreen() {
   const router = useRouter();
+  const { returnTo } = useLocalSearchParams<{ returnTo?: string }>();
   const { setPullPlus, isPullPlus } = useAccess();
   const { user } = useSession();
   const { products, productsLoading, productsError, reloadProducts, refreshEntitlement } = useBilling();
@@ -43,9 +44,55 @@ export default function PremiumScreen() {
   const annualLabel = formatSubscriptionPrice(annualProduct, '$8.99/yr');
   const selectedProduct = plan === 'annual' ? annualProduct : monthlyProduct;
   const storeReady = !productsLoading && Boolean(selectedProduct);
+
+  // Computed from the real store prices rather than hardcoded, so the badge cannot
+  // drift from what the user is actually charged. Hidden unless both prices load.
+  const annualSaving = useMemo(() => {
+    const monthly = monthlyProduct?.price;
+    const annual = annualProduct?.price;
+    if (!monthly || !annual || monthly <= 0) {
+      return null;
+    }
+    const yearAtMonthly = monthly * 12;
+    if (annual >= yearAtMonthly) {
+      return null;
+    }
+    return Math.round(((yearAtMonthly - annual) / yearAtMonthly) * 100);
+  }, [monthlyProduct?.price, annualProduct?.price]);
+
+  const annualPerMonth = useMemo(() => {
+    const annual = annualProduct?.price;
+    const currency = annualProduct?.currency;
+    if (!annual || !currency) {
+      return null;
+    }
+    try {
+      return new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(
+        annual / 12,
+      );
+    } catch {
+      return null;
+    }
+  }, [annualProduct?.price, annualProduct?.currency]);
   const requireAccount = () => {
-    router.push({ pathname: '/auth/sign-in', params: { redirect: 'premium' } });
+    router.push({
+      pathname: '/auth/sign-in',
+      params: { redirect: 'premium', ...(returnTo ? { returnTo } : {}) },
+    });
   };
+
+  /**
+   * Where to go once ScreenNudge+ is unlocked. Reached mid-onboarding this has to
+   * resume the flow — dropping the user on Home would skip `activate`, the only
+   * step that actually turns protection on.
+   */
+  const leaveAfterUnlock = useCallback(() => {
+    if (returnTo === 'onboarding-select-apps') {
+      router.replace('/onboarding/select-apps');
+      return;
+    }
+    router.replace('/(tabs)/home');
+  }, [returnTo, router]);
 
   const onSubscribe = async () => {
     if (!user) {
@@ -57,12 +104,10 @@ export default function PremiumScreen() {
     try {
       setBusy(true);
       setError(null);
-      // Pass the Supabase user id as Apple's appAccountToken so the App Store
-      // Server Notifications webhook can map renew/expire/refund back to this user.
       const purchase = await startPullPlusPurchase(plan, user.id);
       setPullPlus(true);
       void recordSubscription(true, purchase.productId, purchase.plan);
-      router.replace('/(tabs)/home');
+      leaveAfterUnlock();
     } catch (purchaseError) {
       const message =
         purchaseError instanceof Error ? purchaseError.message : 'Purchase could not complete.';
@@ -88,15 +133,15 @@ export default function PremiumScreen() {
       if (restored) {
         setPullPlus(true);
         await refreshEntitlement();
-        router.replace('/(tabs)/home');
+        leaveAfterUnlock();
       } else {
-        setError('No active Pull+ subscription found for this Apple ID.');
+        setError('No active ScreenNudge+ subscription found for this Apple ID.');
       }
     } catch (restoreError) {
       setError(
         friendlyAccountError(
           restoreError,
-          'Restore failed. Try again on a physical device with a sandbox account.',
+          'Restore failed. Check your App Store account and try again.',
         ),
       );
     } finally {
@@ -111,38 +156,64 @@ export default function PremiumScreen() {
           <MaterialCommunityIcons name="chevron-left" size={16} color={palette.textMute} />
           <Text style={styles.backText}>Back</Text>
         </Pressable>
-        <Text style={styles.eyebrow}>Pull+</Text>
+        <Text style={styles.eyebrow}>ScreenNudge+</Text>
         <Text style={styles.title}>
           Guard your <Text style={styles.accent}>attention.</Text>
         </Text>
         <Text style={styles.subtitle}>
-          Subscriptions are billed through the App Store.
+          Everything in ScreenNudge, without the ceiling.
         </Text>
 
-        <View style={styles.planTabs}>
-          <Pressable onPress={() => setPlan('monthly')} style={[styles.plan, plan === 'monthly' && styles.planActive]}>
-            <Text style={[styles.planLabel, plan === 'monthly' && styles.planLabelActive]}>
-              Monthly · {productsLoading ? '…' : monthlyLabel}
+        <View style={styles.benefits}>
+          {PLUS_FEATURES.map((feature) => (
+            <View key={feature.label} style={styles.benefit}>
+              <View style={styles.benefitIcon}>
+                <MaterialCommunityIcons name={feature.icon} size={20} color={palette.brass} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.benefitTitle}>{feature.label}</Text>
+                <Text style={styles.benefitBlurb}>{feature.blurb}</Text>
+              </View>
+            </View>
+          ))}
+        </View>
+
+        <View style={styles.planCards}>
+          <Pressable
+            onPress={() => setPlan('annual')}
+            style={[styles.planCard, plan === 'annual' && styles.planCardActive]}
+          >
+            {annualSaving !== null ? (
+              <View style={styles.saveBadge}>
+                <Text style={styles.saveBadgeText}>SAVE {annualSaving}%</Text>
+              </View>
+            ) : null}
+            <Text style={[styles.planName, plan === 'annual' && styles.planNameActive]}>Yearly</Text>
+            <Text style={styles.planPrice}>{productsLoading ? '…' : annualLabel}</Text>
+            <Text style={styles.planNote}>
+              {annualPerMonth ? `${annualPerMonth} a month` : 'Billed once a year'}
             </Text>
           </Pressable>
-          <Pressable onPress={() => setPlan('annual')} style={[styles.plan, plan === 'annual' && styles.planActive]}>
-            <Text style={[styles.planLabel, plan === 'annual' && styles.planLabelActive]}>
-              Annual · {productsLoading ? '…' : annualLabel}
-            </Text>
+
+          <Pressable
+            onPress={() => setPlan('monthly')}
+            style={[styles.planCard, plan === 'monthly' && styles.planCardActive]}
+          >
+            <Text style={[styles.planName, plan === 'monthly' && styles.planNameActive]}>Monthly</Text>
+            <Text style={styles.planPrice}>{productsLoading ? '…' : monthlyLabel}</Text>
+            <Text style={styles.planNote}>Cancel anytime</Text>
           </Pressable>
         </View>
 
-        <PlanComparison isPullPlus={isPullPlus} onUpgrade={onSubscribe} showCta={false} />
-
         {isPullPlus ? (
-          <Text style={styles.activeNote}>Pull+ is active on this device.</Text>
+          <Text style={styles.activeNote}>ScreenNudge+ is active on this device.</Text>
         ) : null}
 
         {!user ? (
           <View style={styles.accountBox}>
             <MaterialCommunityIcons name="account-lock-outline" size={18} color={palette.brass} />
             <Text style={styles.accountText}>
-              Sign in before subscribing so Pull+ can be restored after reinstall or on another device.
+              Sign in before subscribing so ScreenNudge+ can be restored after reinstall or on another device.
             </Text>
           </View>
         ) : null}
@@ -150,7 +221,7 @@ export default function PremiumScreen() {
         {!productsLoading && products.length === 0 ? (
           <View style={styles.warningBox}>
             <Text style={styles.warning}>
-              {productsError ?? 'No products returned from the App Store yet.'}
+              {productsError ?? 'ScreenNudge+ is temporarily unavailable from the App Store.'}
             </Text>
             <Pressable onPress={() => void reloadProducts()} disabled={busy} style={styles.reload}>
               <Text style={styles.reloadLabel}>Reload products</Text>
@@ -167,10 +238,10 @@ export default function PremiumScreen() {
         >
           <Text style={styles.ctaLabel}>
             {!user
-              ? 'Sign in to subscribe'
+              ? 'Sign in to unlock'
               : busy
                 ? 'Processing…'
-                : `Subscribe · ${plan === 'annual' ? annualLabel : monthlyLabel}`}
+                : `Unlock ScreenNudge+ · ${plan === 'annual' ? annualLabel : monthlyLabel}`}
           </Text>
         </Pressable>
 
@@ -179,7 +250,7 @@ export default function PremiumScreen() {
         </Pressable>
 
         <Text style={styles.legalBody}>
-          Pull+ is an auto-renewable subscription. Your {plan === 'annual' ? annualLabel : monthlyLabel}{' '}
+          ScreenNudge+ is an auto-renewable subscription. Your {plan === 'annual' ? annualLabel : monthlyLabel}{' '}
           subscription renews automatically each {plan === 'annual' ? 'year' : 'month'} unless cancelled
           at least 24 hours before the end of the current period. Payment is charged to your Apple ID;
           manage or cancel anytime in your App Store account settings.
@@ -207,11 +278,52 @@ const styles = StyleSheet.create({
   title: { color: palette.text, fontSize: 46, fontWeight: '700', lineHeight: 49 },
   accent: { color: palette.brass, fontStyle: 'italic' },
   subtitle: { color: palette.textSoft, fontSize: 15, lineHeight: 22, marginBottom: 6 },
-  planTabs: { flexDirection: 'row', borderWidth: 1, borderColor: palette.line, borderRadius: 999, padding: 4, gap: 6 },
-  plan: { flex: 1, alignItems: 'center', borderRadius: 999, paddingVertical: 9 },
-  planActive: { backgroundColor: palette.surface2 },
-  planLabel: { color: palette.textMute, fontSize: 14, textAlign: 'center' },
-  planLabelActive: { color: palette.text },
+  benefits: { gap: 14, marginTop: 4, marginBottom: 6 },
+  benefit: { flexDirection: 'row', gap: 12, alignItems: 'flex-start' },
+  benefitIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 11,
+    backgroundColor: palette.brassSoft,
+    borderWidth: 1,
+    borderColor: palette.brass,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  benefitTitle: { color: palette.text, fontSize: 16, fontWeight: '700' },
+  benefitBlurb: { color: palette.textSoft, fontSize: 13, lineHeight: 19, marginTop: 2 },
+  planCards: { flexDirection: 'row', gap: 10, marginTop: 4 },
+  planCard: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: palette.line,
+    backgroundColor: palette.surface,
+    borderRadius: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 12,
+    gap: 2,
+    alignItems: 'center',
+  },
+  planCardActive: { borderColor: palette.brass, backgroundColor: palette.brassSoft },
+  saveBadge: {
+    position: 'absolute',
+    top: -9,
+    backgroundColor: palette.brass,
+    borderRadius: 999,
+    paddingHorizontal: 9,
+    paddingVertical: 3,
+  },
+  saveBadgeText: { color: palette.bg, fontSize: 10, fontWeight: '800', letterSpacing: 0.6 },
+  planName: {
+    color: palette.textMute,
+    fontSize: 12,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 1.2,
+  },
+  planNameActive: { color: palette.brass },
+  planPrice: { color: palette.text, fontSize: 20, fontWeight: '700', marginTop: 4 },
+  planNote: { color: palette.textMute, fontSize: 12 },
   featureList: { marginTop: 8, gap: 8 },
   feature: { flexDirection: 'row', gap: 8, alignItems: 'flex-start' },
   tick: { color: palette.brass, fontWeight: '800' },

@@ -12,13 +12,9 @@ export type ProtectionSnapshot = {
   selectedAppIds: string[];
   protections: Record<string, AppProtection>;
   activated: boolean;
-  /** Default nudge mode for Screen Time bundle (all selected apps). */
   globalMode: ProtectionMode;
-  /** Wind-Down: block guarded apps during a nightly window (Pull+). */
   bedtimeEnabled: boolean;
-  /** Minutes since midnight the window starts (e.g. 1320 = 22:00). */
   bedtimeStart: number;
-  /** Minutes since midnight the window ends (e.g. 420 = 07:00). */
   bedtimeEnd: number;
 };
 
@@ -45,7 +41,6 @@ export async function loadProtectionSnapshot(): Promise<ProtectionSnapshot | nul
     if (parsed.version !== 1) {
       return null;
     }
-    // Backfill fields added after a snapshot was first written (e.g. bedtime).
     return { ...defaultSnapshot(), ...parsed };
   } catch {
     return null;

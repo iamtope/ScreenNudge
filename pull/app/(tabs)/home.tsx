@@ -3,15 +3,24 @@ import { ScrollView, View, Text, StyleSheet, Pressable } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { ProtectedTargetsSection } from '@/src/components/ProtectedTargets';
-import { PlanComparison } from '@/src/components/PlanComparison';
+import { PlusUpsellCard } from '@/src/components/PlusUpsellCard';
 import { Screen } from '@/src/components/Screen';
 import { syncScreenTimeSelectionCount } from '@/src/services/protection';
 import { getTodayAttemptCount } from '@/src/services/attempts';
-import { useOnboarding } from '@/src/state/onboarding';
+import { EMPTY_STREAK, getStreak, syncStreak, type StreakSummary } from '@/src/services/streak';
+import { SCREEN_TIME_PROTECTION_ID, useOnboarding } from '@/src/state/onboarding';
 import { useGate } from '@/src/state/access';
 import { useSession } from '@/src/state/session';
 import { getFirstName } from '@/src/lib/displayName';
 import { palette } from '@/src/theme/palette';
+
+function formatMinutes(minutes: number): string {
+  if (minutes <= 0) return '0m';
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  if (hours === 0) return `${mins}m`;
+  return mins === 0 ? `${hours}h` : `${hours}h ${mins}m`;
+}
 
 function formatClock(min: number): string {
   const total = ((Math.round(min) % 1440) + 1440) % 1440;
@@ -24,11 +33,20 @@ function formatClock(min: number): string {
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { protectionTargets, usingScreenTime, setScreenTimeAppCount, getProtection, bedtimeEnabled, bedtimeStart, bedtimeEnd } = useOnboarding();
+  const {
+    usingScreenTime,
+    setScreenTimeAppCount,
+    bedtimeEnabled,
+    bedtimeStart,
+    bedtimeEnd,
+    getProtection,
+  } = useOnboarding();
   const { unlocked: pullPlusUnlocked } = useGate('pullPlus');
   const { profile, user } = useSession();
   const firstName = getFirstName(user, profile);
   const [attemptsToday, setAttemptsToday] = useState(0);
+  const [streak, setStreak] = useState<StreakSummary>(EMPTY_STREAK);
+  const configuredGoalMin = getProtection(SCREEN_TIME_PROTECTION_ID).dailyLimitMin;
 
   const todayLabel = React.useMemo(() => {
     const d = new Date();
@@ -46,7 +64,11 @@ export default function HomeScreen() {
         }
       }
       void getTodayAttemptCount().then(setAttemptsToday);
-    }, [setScreenTimeAppCount, usingScreenTime]),
+      void getStreak(configuredGoalMin).then((next) => {
+        setStreak(next);
+        void syncStreak(next);
+      });
+    }, [setScreenTimeAppCount, usingScreenTime, configuredGoalMin]),
   );
 
   return (
@@ -70,35 +92,38 @@ export default function HomeScreen() {
           </Pressable>
         </View>
 
-        <View>
-          <Text style={styles.label}>Attempts today</Text>
-          <View style={styles.attemptRow}>
+        <View style={styles.todayRow}>
+          <View style={styles.todayCol}>
+            <Text style={styles.label}>Attempts today</Text>
             <Text style={styles.attemptCount}>{attemptsToday}</Text>
-            <View>
-              <Text style={styles.subtle}>
-                {attemptsToday === 0
-                  ? 'No guarded-app attempts yet'
-                  : 'times you reached the pause'}
-              </Text>
+            <Text style={styles.subtle}>
+              {attemptsToday === 0 ? 'None yet' : 'times you reached the pause'}
+            </Text>
+          </View>
+
+          <View style={styles.todayDivider} />
+
+          <View style={styles.todayCol}>
+            <Text style={styles.label}>Goal streak</Text>
+            <View style={styles.streakRow}>
+              <MaterialCommunityIcons
+                name={streak.breachedToday ? 'fire-off' : 'fire'}
+                size={22}
+                color={streak.breachedToday ? palette.textMute : palette.brass}
+              />
+              <Text style={styles.attemptCount}>{streak.current}</Text>
             </View>
+            <Text style={styles.subtle}>
+              {streak.breachedToday
+                ? 'Over goal today'
+                : streak.goalMin > 0
+                  ? `Stay under ${formatMinutes(streak.goalMin)}`
+                  : 'days under your goal'}
+            </Text>
           </View>
         </View>
 
         <ProtectedTargetsSection onManage={() => router.push('/pull-plus/add-target')} />
-
-        {protectionTargets.length > 0 ? (
-          <Pressable
-            onPress={() =>
-              router.push({
-                pathname: '/intercept/[app]',
-                params: { app: 'app', mode: getProtection(protectionTargets[0].id).mode },
-              })
-            }
-            style={styles.unlockBtn}
-          >
-            <Text style={styles.unlockLabel}>A guarded app is blocked? Take the pause to unlock</Text>
-          </Pressable>
-        ) : null}
 
         {pullPlusUnlocked ? (
           <Pressable onPress={() => router.push('/settings')} style={styles.cardPrimary}>
@@ -113,7 +138,7 @@ export default function HomeScreen() {
             </Text>
           </Pressable>
         ) : (
-          <PlanComparison isPullPlus={false} onUpgrade={() => router.push('/premium')} />
+          <PlusUpsellCard onPress={() => router.push('/premium')} />
         )}
 
       </ScrollView>
@@ -137,9 +162,13 @@ const styles = StyleSheet.create({
   heading: { color: palette.text, fontSize: 44, fontWeight: '700', marginTop: 6 },
   headingAccent: { color: palette.brass, fontStyle: 'italic' },
   label: { color: palette.textMute, fontSize: 12, textTransform: 'uppercase', letterSpacing: 1.4 },
-  attemptRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 12, marginTop: 8 },
-  attemptCount: { color: palette.text, fontSize: 76, fontWeight: '700', lineHeight: 80 },
-  subtle: { color: palette.textSoft, fontSize: 14 },
+  todayRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 16 },
+  todayCol: { flex: 1, gap: 2 },
+  todayDivider: { width: 1, alignSelf: 'stretch', backgroundColor: palette.line },
+  streakRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  // Smaller than the old single-column hero number so two fit side by side.
+  attemptCount: { color: palette.text, fontSize: 48, fontWeight: '700', lineHeight: 54 },
+  subtle: { color: palette.textSoft, fontSize: 13, lineHeight: 18 },
   green: { color: palette.green, fontSize: 14, marginTop: 4 },
   cardPrimary: { backgroundColor: palette.brassSoft, borderColor: palette.brass, borderWidth: 1, borderRadius: 18, padding: 14, gap: 4 },
   chip: {
@@ -154,6 +183,4 @@ const styles = StyleSheet.create({
   },
   amount: { color: palette.text, fontSize: 34, fontWeight: '700' },
   windTitle: { color: palette.text, fontSize: 23, fontWeight: '700', marginTop: 2 },
-  unlockBtn: { borderWidth: 1, borderColor: palette.brass, backgroundColor: palette.brassSoft, borderRadius: 14, paddingVertical: 14, paddingHorizontal: 14, alignItems: 'center' },
-  unlockLabel: { color: palette.brass, fontSize: 15, fontWeight: '700', textAlign: 'center' },
 });

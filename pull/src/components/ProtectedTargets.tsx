@@ -2,11 +2,13 @@ import React from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { formatMinutes, formatOpens, protectionModeName } from '@/src/domain/onboarding';
+import { formatMinutes, protectionModeName } from '@/src/domain/onboarding';
 import { useOnboarding } from '@/src/state/onboarding';
 import { useGuardLimit } from '@/src/hooks/useGuardLimit';
 import { FREE_GUARDED_APP_LIMIT } from '@/src/domain/plan';
+import { getScreenTimeSelectionToken } from '@/src/services/protection';
 import { palette } from '@/src/theme/palette';
+import { GuardedAppIcons } from '@/modules/guarded-app-icons';
 
 type Props = {
   onManage: () => void;
@@ -14,9 +16,16 @@ type Props = {
 
 export function ProtectedTargetsSection({ onManage }: Props) {
   const router = useRouter();
-  const { protectionTargets, getProtection, protectedCount, activated } = useOnboarding();
+  const {
+    protectionTargets,
+    getProtection,
+    protectedCount,
+    activated,
+    usingScreenTime,
+  } = useOnboarding();
   const { isPullPlus, atLimit, overLimit } = useGuardLimit();
   const goPlus = () => router.push('/premium');
+  const screenTimeSelection = usingScreenTime ? getScreenTimeSelectionToken() : null;
 
   return (
     <View style={styles.section}>
@@ -50,7 +59,7 @@ export function ProtectedTargetsSection({ onManage }: Props) {
           <View style={styles.empty}>
             <Text style={styles.emptyTitle}>Choose apps to protect</Text>
             <Text style={styles.emptyBody}>
-              Pick the apps that pull you in. Pull intercepts them before mindless scrolling starts.
+              Pick the apps that distract you. ScreenNudge intercepts them before mindless scrolling starts.
             </Text>
           </View>
           <Pressable
@@ -66,16 +75,24 @@ export function ProtectedTargetsSection({ onManage }: Props) {
       ) : (
         <View style={styles.list}>
           {protectionTargets.map((target) => {
-            const { dailyLimitMin, dailyOpens, mode } = getProtection(target.id);
+            const { dailyLimitMin, mode } = getProtection(target.id);
             return (
               <Pressable key={target.id} onPress={onManage} style={styles.row}>
-                <View style={styles.glyph}>
-                  <Text style={styles.glyphText}>{target.glyph}</Text>
-                </View>
+                {usingScreenTime ? (
+                  <GuardedAppIcons
+                    selection={screenTimeSelection}
+                    count={protectedCount}
+                    fallbackGlyph={target.glyph}
+                  />
+                ) : (
+                  <View style={styles.glyph}>
+                    <Text style={styles.glyphText}>{target.glyph}</Text>
+                  </View>
+                )}
                 <View style={styles.meta}>
                   <Text style={styles.name}>{target.name}</Text>
                   <Text style={styles.limits}>
-                    {formatMinutes(dailyLimitMin)} · {formatOpens(dailyOpens)} · {protectionModeName(mode)}
+                    {formatMinutes(dailyLimitMin)} · {protectionModeName(mode)}
                   </Text>
                 </View>
                 <View style={[styles.badge, !activated && styles.badgePending]}>
@@ -95,7 +112,7 @@ export function ProtectedTargetsSection({ onManage }: Props) {
           <View style={{ flex: 1 }}>
             <Text style={styles.noticeText}>
               {protectedCount} guarded · over your Free limit of {FREE_GUARDED_APP_LIMIT}. They keep
-              working — go unlimited with Pull+, or trim back to {FREE_GUARDED_APP_LIMIT}.
+              working — go unlimited with ScreenNudge+, or trim back to {FREE_GUARDED_APP_LIMIT}.
             </Text>
             <View style={styles.noticeActions}>
               <Pressable onPress={goPlus} hitSlop={6}>

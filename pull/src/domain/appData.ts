@@ -1,5 +1,3 @@
-// Legacy shape for old local snapshots created before Screen Time became the
-// only app-selection path. New selections come from Apple's Screen Time picker.
 export type DiscoveredApp = {
   id: string;
   name: string;

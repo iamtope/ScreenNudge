@@ -21,10 +21,8 @@ import {
   type FocusRoomMember,
   type FocusSession,
 } from '@/src/services/focus';
-import { isLikelyNetworkError } from '@/src/lib/network';
 import { endFocusEnforcement, startFocusEnforcement } from '@/src/services/protection';
 
-/** A session is "live" while not explicitly ended and within grace of its target. */
 const GRACE_MS = 2 * 60 * 1000;
 const REFETCH_INTERVAL_MS = 25_000;
 const CACHE_KEY = 'pull:focus:active';
@@ -33,7 +31,6 @@ const LOCAL_SESSION_PREFIX = 'local:';
 type FocusContextValue = {
   activeSession: FocusSession | null;
   isFocusing: boolean;
-  /** Whether the active session is actually blocking apps via Screen Time. */
   enforced: boolean;
   roomMembers: FocusRoomMember[];
   start: (targetMinutes: number) => Promise<void>;
@@ -117,7 +114,6 @@ async function writeCache(session: FocusSession, enforced: boolean): Promise<voi
     };
     await AsyncStorage.setItem(CACHE_KEY, JSON.stringify(payload));
   } catch {
-    // Best-effort; DB remains the source of truth.
   }
 }
 
@@ -125,7 +121,6 @@ async function clearCache(): Promise<void> {
   try {
     await AsyncStorage.removeItem(CACHE_KEY);
   } catch {
-    // Best-effort
   }
 }
 
@@ -139,6 +134,7 @@ export function FocusProvider({ children }: { children: React.ReactNode }) {
   const [roomMembers, setRoomMembers] = useState<FocusRoomMember[]>([]);
 
   const refetchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const sessionVersionRef = useRef(0);
 
   const refetchRoom = useCallback(async () => {
     if (!circleId) {
@@ -149,7 +145,6 @@ export function FocusProvider({ children }: { children: React.ReactNode }) {
       const members = await getRoomActiveSessions(circleId);
       setRoomMembers(members.filter((member) => member.userId !== userId));
     } catch {
-      // Keep the last good room state on transient failures.
     }
   }, [circleId, userId]);
 
@@ -162,7 +157,6 @@ export function FocusProvider({ children }: { children: React.ReactNode }) {
     }, 300);
   }, [refetchRoom]);
 
-  /** Reconcile the user's own session against the DB (source of truth). */
   const reconcileMyFocus = useCallback(async () => {
     if (activeSession && isLocalSessionId(activeSession.id)) {
       if (isLive(activeSession.expectedEndAt)) {
@@ -179,10 +173,16 @@ export function FocusProvider({ children }: { children: React.ReactNode }) {
     try {
       db = await getMyActiveSession();
     } catch {
-      // Offline: keep the current local/cached session state and retry later.
       return;
     }
     if (!db) {
+      if (activeSession && isLive(activeSession.expectedEndAt)) {
+        return;
+      }
+      if (activeSession) {
+        await endFocusEnforcement();
+        await clearCache();
+      }
       setActiveSession(null);
       setEnforced(false);
       return;
@@ -193,7 +193,6 @@ export function FocusProvider({ children }: { children: React.ReactNode }) {
       try {
         await endFocus(db.id, 'completed');
       } catch {
-        // Best-effort; lazy server close also handles this.
       }
       await endFocusEnforcement();
       await clearCache();
@@ -202,11 +201,10 @@ export function FocusProvider({ children }: { children: React.ReactNode }) {
     }
   }, [activeSession]);
 
-  /** On launch: restore a running session from the DB and re-assert enforcement. */
   const restore = useCallback(async () => {
     const cached = await readCache();
-    if (cached && isLive(cached.expectedEndAt) && userId) {
-      // Instant paint before the network resolves.
+    const hasLiveCache = Boolean(cached && isLive(cached.expectedEndAt) && userId);
+    if (hasLiveCache && cached && userId) {
       const cachedSession = cachedToSession(cached, userId);
       setActiveSession(cachedSession);
       setEnforced(cached.enforced);
@@ -230,6 +228,9 @@ export function FocusProvider({ children }: { children: React.ReactNode }) {
       db = null;
     }
     if (!db) {
+      if (hasLiveCache) {
+        return;
+      }
       if (cached) {
         await endFocusEnforcement();
         await clearCache();
@@ -242,7 +243,6 @@ export function FocusProvider({ children }: { children: React.ReactNode }) {
     if (isLive(db.expectedEndAt)) {
       setActiveSession(db);
       if (cached?.enforced) {
-        // Re-assert the block + monitor once after a cold start.
         const { enforced: stillEnforced } = await startFocusEnforcement(
           remainingMinutes(db.expectedEndAt),
         );
@@ -255,7 +255,6 @@ export function FocusProvider({ children }: { children: React.ReactNode }) {
       try {
         await endFocus(db.id, 'completed');
       } catch {
-        // Best-effort
       }
       await endFocusEnforcement();
       await clearCache();
@@ -264,9 +263,9 @@ export function FocusProvider({ children }: { children: React.ReactNode }) {
     }
   }, [userId]);
 
-  // Restore once per signed-in user.
   useEffect(() => {
     if (!userId) {
+      sessionVersionRef.current += 1;
       setActiveSession(null);
       setEnforced(false);
       return;
@@ -274,7 +273,6 @@ export function FocusProvider({ children }: { children: React.ReactNode }) {
     void restore();
   }, [userId, restore]);
 
-  // Live room: realtime → debounced refetch, plus periodic + foreground refetch.
   useEffect(() => {
     if (!circleId) {
       setRoomMembers([]);
@@ -300,31 +298,49 @@ export function FocusProvider({ children }: { children: React.ReactNode }) {
 
   const start = useCallback(
     async (targetMinutes: number) => {
-      let serverBacked = true;
-      let session: FocusSession;
+      if (!userId) {
+        throw new Error('Sign in to start a focus session.');
+      }
+
+      const version = sessionVersionRef.current + 1;
+      sessionVersionRef.current = version;
+      const localSession = createLocalSession(targetMinutes, userId, circleId);
+      setActiveSession(localSession);
+
+      let didEnforce = false;
       try {
-        session = await startFocus(targetMinutes);
-      } catch (error) {
-        if (!userId || !isLikelyNetworkError(error)) {
-          throw error;
-        }
-        serverBacked = false;
-        session = createLocalSession(targetMinutes, userId, circleId);
+        ({ enforced: didEnforce } = await startFocusEnforcement(targetMinutes));
+      } catch {
       }
-      setActiveSession(session);
-      const { enforced: didEnforce } = await startFocusEnforcement(targetMinutes);
       setEnforced(didEnforce);
-      if (didEnforce && serverBacked) {
-        void markEnforced(session.id);
-      }
-      await writeCache(session, didEnforce);
+      await writeCache(localSession, didEnforce);
       scheduleRefetch();
+
+      void startFocus(targetMinutes)
+        .then(async (serverSession) => {
+          if (sessionVersionRef.current !== version) {
+            try {
+              await endFocus(serverSession.id, 'manual');
+            } catch {
+            }
+            return;
+          }
+          setActiveSession(serverSession);
+          await writeCache(serverSession, didEnforce);
+          if (didEnforce) {
+            void markEnforced(serverSession.id);
+          }
+          scheduleRefetch();
+        })
+        .catch(() => {
+        });
     },
     [circleId, scheduleRefetch, userId],
   );
 
   const end = useCallback(
     async (reason: 'manual' | 'completed' = 'manual') => {
+      sessionVersionRef.current += 1;
       const current = activeSession;
       setActiveSession(null);
       setEnforced(false);
@@ -332,7 +348,6 @@ export function FocusProvider({ children }: { children: React.ReactNode }) {
         try {
           await endFocus(current.id, reason);
         } catch {
-          // Best-effort; lazy server close handles stragglers.
         }
       }
       await endFocusEnforcement();

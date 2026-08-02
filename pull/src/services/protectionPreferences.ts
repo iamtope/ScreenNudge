@@ -177,6 +177,5 @@ export async function syncProtectionPreferences(snapshot: ProtectionSnapshot): P
       p_bedtime_end: preferences.bedtimeEnd,
     });
   } catch {
-    // Best-effort; device-local protection remains the source of truth.
   }
 }

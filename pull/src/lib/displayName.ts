@@ -1,5 +1,6 @@
 import type { User } from '@supabase/supabase-js';
 
+import { isDefaultDisplayName } from '@/src/lib/brand';
 import type { CircleProfile } from '@/src/services/circle';
 
 function nameFromUserMetadata(user: User): string | null {
@@ -20,7 +21,7 @@ function nameFromUserMetadata(user: User): string | null {
 
 export function getDisplayName(user: User | null, profile: CircleProfile | null): string {
   const fromProfile = profile?.displayName?.trim();
-  if (fromProfile && fromProfile !== 'Pull user') {
+  if (fromProfile && !isDefaultDisplayName(fromProfile)) {
     return fromProfile;
   }
 

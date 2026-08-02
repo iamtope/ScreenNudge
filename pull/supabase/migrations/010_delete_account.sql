@@ -1,4 +1,4 @@
--- Pull: in-app account deletion (App Store Guideline 5.1.1(v) — apps that create
+-- ScreenNudge: in-app account deletion (App Store Guideline 5.1.1(v) — apps that create
 -- accounts MUST let users delete them in-app).
 -- Run in Supabase SQL Editor after 001–009.
 --

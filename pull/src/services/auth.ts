@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import * as QueryParams from 'expo-auth-session/build/QueryParams';
 import * as WebBrowser from 'expo-web-browser';
@@ -5,16 +6,11 @@ import { makeRedirectUri } from 'expo-auth-session';
 import { Platform } from 'react-native';
 import type { Session, User } from '@supabase/supabase-js';
 
-import { isSupabaseConfigured, supabase } from '@/src/lib/supabase';
-import { isLikelyNetworkError } from '@/src/lib/network';
+import { authStorageKey, isSupabaseConfigured, supabase } from '@/src/lib/supabase';
 import { syncProfileDisplayName } from '@/src/services/profile';
 
 WebBrowser.maybeCompleteAuthSession();
 
-/**
- * Native apps must use the custom scheme — not localhost (dev `makeRedirectUri` defaults break on device).
- * Add this exact value to Supabase → Authentication → URL Configuration → Redirect URLs.
- */
 export const authRedirectUri =
   Platform.OS === 'web'
     ? makeRedirectUri({ scheme: 'pull', path: 'auth/callback', preferLocalhost: false })
@@ -22,14 +18,8 @@ export const authRedirectUri =
 
 const redirectTo = authRedirectUri;
 
-function formatAuthError(error: unknown, provider: 'apple' | 'google'): string {
-  const message = error instanceof Error ? error.message : String(error);
-  if (message.includes('provider is not enabled') || message.includes('appleid.apple.com')) {
-    return provider === 'apple'
-      ? 'Apple sign-in is not enabled in Supabase. Go to Authentication → Providers → Apple, turn it on, and add your bundle ID + secret.'
-      : 'Google sign-in is not enabled in Supabase. Go to Authentication → Providers → Google and turn it on.';
-  }
-  return message;
+function formatAuthError(): string {
+  return 'Sign-in is temporarily unavailable. Try again.';
 }
 
 async function createSessionFromUrl(url: string): Promise<Session | null> {
@@ -37,13 +27,7 @@ async function createSessionFromUrl(url: string): Promise<Session | null> {
 
   const errorDescription = params.error_description ?? params.msg;
   if (errorCode || params.error || errorDescription) {
-    const message = String(errorDescription ?? params.error ?? errorCode);
-    if (message.includes('provider is not enabled')) {
-      throw new Error(
-        'Google sign-in is not enabled in Supabase. Turn on the Google provider under Authentication → Providers.',
-      );
-    }
-    throw new Error(message);
+    throw new Error('Google sign-in could not be completed. Try again.');
   }
 
   const accessToken = params.access_token;
@@ -77,7 +61,7 @@ export async function getCurrentUser(): Promise<User | null> {
 
 export async function signInWithApple(): Promise<Session | null> {
   if (!isSupabaseConfigured) {
-    throw new Error('Supabase is not configured. Add EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY.');
+    throw new Error('Sign-in is temporarily unavailable. Try again later.');
   }
 
   if (Platform.OS !== 'ios') {
@@ -92,7 +76,7 @@ export async function signInWithApple(): Promise<Session | null> {
   });
 
   if (!credential.identityToken) {
-    throw new Error('Apple Sign In did not return an identity token.');
+    throw new Error('Apple sign-in could not be completed. Try again.');
   }
 
   const { data, error } = await supabase.auth.signInWithIdToken({
@@ -101,7 +85,7 @@ export async function signInWithApple(): Promise<Session | null> {
   });
 
   if (error) {
-    throw new Error(formatAuthError(error, 'apple'));
+    throw new Error(formatAuthError());
   }
 
   if (credential.fullName && data.user) {
@@ -119,7 +103,7 @@ export async function signInWithApple(): Promise<Session | null> {
 
 export async function signInWithGoogle(): Promise<Session | null> {
   if (!isSupabaseConfigured) {
-    throw new Error('Supabase is not configured. Add EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY.');
+    throw new Error('Sign-in is temporarily unavailable. Try again later.');
   }
 
   const { data, error } = await supabase.auth.signInWithOAuth({
@@ -131,11 +115,11 @@ export async function signInWithGoogle(): Promise<Session | null> {
   });
 
   if (error) {
-    throw new Error(formatAuthError(error, 'google'));
+    throw new Error(formatAuthError());
   }
 
   if (!data.url) {
-    throw new Error('Google sign-in URL was not returned.');
+    throw new Error('Google sign-in could not be started. Try again.');
   }
 
   const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
@@ -144,46 +128,54 @@ export async function signInWithGoogle(): Promise<Session | null> {
   }
 
   if (result.url.includes('provider is not enabled')) {
-    throw new Error(
-      'Google sign-in is not enabled in Supabase. Turn on the Google provider under Authentication → Providers.',
-    );
+    throw new Error('Google sign-in is temporarily unavailable. Try again later.');
   }
 
   if (result.url.includes('redirect_uri_mismatch')) {
-    throw new Error(
-      'Google redirect URI mismatch. In Google Cloud Console, add https://<your-project>.supabase.co/auth/v1/callback to your Web OAuth client (see supabase/README.md).',
-    );
+    throw new Error('Google sign-in could not be completed. Try again later.');
   }
 
   return createSessionFromUrl(result.url);
 }
 
-export async function signOut(): Promise<void> {
+/**
+ * supabase.auth.signOut() bails out before clearing anything when it cannot load
+ * the stored session first: an expired access token whose refresh call fails
+ * leaves the token in AsyncStorage at every scope, so the user stays signed in.
+ * Remove it ourselves, then let supabase clear the rest of its own keys and emit
+ * SIGNED_OUT so the app's session state follows.
+ */
+async function clearLocalSession(): Promise<void> {
   try {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      throw error;
-    }
-  } catch (error) {
-    if (!isLikelyNetworkError(error)) {
-      throw error;
-    }
+    await AsyncStorage.removeItem(authStorageKey);
+  } catch {
+  }
+  try {
     await supabase.auth.signOut({ scope: 'local' });
+  } catch {
   }
 }
 
 /**
- * Permanently deletes the signed-in user's account and all their data (profile,
- * circle, focus sessions, usage history, subscription mirror) via the
- * `delete_my_account` RPC, then clears the local session. Required for App Store
- * Guideline 5.1.1(v). Irreversible.
+ * Signing out always leaves this device signed out. Revoking the session
+ * server-side is best effort — no connection, an expired token, or a session
+ * that was already revoked must never keep the user logged in here.
  */
+export async function signOut(): Promise<void> {
+  try {
+    const { error } = await supabase.auth.signOut();
+    if (!error) {
+      return;
+    }
+  } catch {
+  }
+  await clearLocalSession();
+}
+
 export async function deleteAccount(): Promise<void> {
   const { error } = await supabase.rpc('delete_my_account');
   if (error) {
     throw error;
   }
-  // The auth row is gone server-side; clear only the local session (no server
-  // round-trip to a user that no longer exists).
-  await supabase.auth.signOut({ scope: 'local' });
+  await clearLocalSession();
 }

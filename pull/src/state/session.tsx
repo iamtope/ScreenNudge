@@ -10,6 +10,7 @@ import type { Session, User } from '@supabase/supabase-js';
 
 import { supabase } from '@/src/lib/supabase';
 import {
+  getCachedCircle,
   getMyCircle,
   getOrCreateMyProfile,
   type CircleData,
@@ -39,6 +40,15 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   const [pendingInviteCode, setPendingInviteCode] = useState<string | null>(null);
 
   const loadCircle = useCallback(async (userId: string, authUser?: User | null): Promise<CircleProfile | null> => {
+    const cached = await getCachedCircle(userId);
+    if (cached) {
+      setCircle(cached);
+      const cachedProfile = cached.members.find((member) => member.id === userId) ?? null;
+      if (cachedProfile) {
+        setProfile(cachedProfile);
+      }
+    }
+
     const nextCircle = await getMyCircle(userId);
     setCircle(nextCircle);
 
@@ -132,7 +142,6 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
           await joinWithCode(code);
           await loadCircle(session.user.id, session.user);
         } catch {
-          // Invite screen or join flow can retry
         }
       })();
     }

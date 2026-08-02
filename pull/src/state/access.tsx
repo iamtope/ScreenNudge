@@ -30,13 +30,13 @@ export const GATE_COPY: Record<
   },
   circle: {
     title: 'Join a circle',
-    subtitle: 'Free with your account. Add friends, send rescues, and focus together.',
+    subtitle: 'Free with your account. See how your friends are doing and focus together.',
     cta: 'Build your circle',
   },
   pullPlus: {
-    title: 'Pull+',
+    title: 'ScreenNudge+',
     subtitle: 'Deeper insights · advanced controls',
-    cta: 'Unlock Pull+',
+    cta: 'Unlock ScreenNudge+',
   },
 };
 
@@ -46,7 +46,6 @@ type AccessContextValue = {
   isPullPlus: boolean;
   isLoading: boolean;
   setPullPlus: (value: boolean) => void;
-  /** Which gate blocks this feature, or null if unlocked. */
   gateFor: (requirement: GateReason) => GateReason | null;
 };
 
@@ -55,8 +54,6 @@ const AccessContext = createContext<AccessContextValue | null>(null);
 function AccessStateProvider({ children }: { children: React.ReactNode }) {
   const { user, isLoading: sessionLoading } = useSession();
   const { enabled: pacerEnabled } = usePacer();
-  // The pacer bot counts as circle company: with it on, a solo user still gets a
-  // live leaderboard + focus room to compete on (toggle it off in Settings).
   const hasCircle = useHasCircle() || pacerEnabled;
   const [isPullPlus, setPullPlusState] = useState(false);
   const [pullPlusLoaded, setPullPlusLoaded] = useState(false);
@@ -121,12 +118,10 @@ export function useAccess(): AccessContextValue {
   return ctx;
 }
 
-/** @deprecated Use useAccess().isPullPlus */
 export function usePullPlus(): boolean {
   return useAccess().isPullPlus;
 }
 
-/** @deprecated Use useAccess().setPullPlus */
 export function useSetPullPlus(): (active: boolean) => void {
   return useAccess().setPullPlus;
 }

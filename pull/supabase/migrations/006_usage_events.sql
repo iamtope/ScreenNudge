@@ -1,4 +1,4 @@
--- Pull: usage events (attempt / open / comeback) synced from device.
+-- ScreenNudge: usage events (attempt / open / comeback) synced from device.
 -- Run in Supabase SQL Editor after 001–005.
 --
 -- The device tracks attempts locally (AsyncStorage) for instant UI; this table

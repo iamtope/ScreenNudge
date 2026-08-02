@@ -3,9 +3,7 @@ import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { Dropdown, type DropdownOption } from '@/src/components/Onboarding';
 import {
   dailyLimitOptions,
-  dailyOpensOptions,
   formatMinutes,
-  formatOpens,
   softWarningMinutes,
 } from '@/src/domain/onboarding';
 import { useOnboarding } from '@/src/state/onboarding';
@@ -14,22 +12,11 @@ import { palette } from '@/src/theme/palette';
 const CUSTOM = 'custom';
 const MIN_LIMIT = 5;
 const MAX_LIMIT = 240;
-const MIN_OPENS = 1;
-const MAX_OPENS = 99;
 
 function limitOptions(current: number): DropdownOption[] {
   const opts: DropdownOption[] = dailyLimitOptions.map((m) => ({ label: formatMinutes(m), value: String(m) }));
   if (!dailyLimitOptions.includes(current)) {
     opts.push({ label: `${formatMinutes(current)} (custom)`, value: String(current) });
-  }
-  opts.push({ label: 'Custom…', value: CUSTOM });
-  return opts;
-}
-
-function opensOptions(current: number): DropdownOption[] {
-  const opts: DropdownOption[] = dailyOpensOptions.map((n) => ({ label: formatOpens(n), value: String(n) }));
-  if (!dailyOpensOptions.includes(current)) {
-    opts.push({ label: `${formatOpens(current)} (custom)`, value: String(current) });
   }
   opts.push({ label: 'Custom…', value: CUSTOM });
   return opts;
@@ -50,18 +37,16 @@ function Stepper({ value, onMinus, onPlus }: { value: string; onMinus: () => voi
 }
 
 export function ProtectionLimitsStep() {
-  const { protectionTargets, getProtection, setDailyLimit, setDailyOpens } = useOnboarding();
+  const { protectionTargets, getProtection, setDailyLimit } = useOnboarding();
   const [customLimit, setCustomLimit] = useState<Record<string, boolean>>({});
-  const [customOpens, setCustomOpens] = useState<Record<string, boolean>>({});
 
   const clamp = (n: number, min: number, max: number) => Math.min(max, Math.max(min, n));
 
   return (
     <>
       {protectionTargets.map((app) => {
-        const { dailyLimitMin, dailyOpens } = getProtection(app.id);
+        const { dailyLimitMin } = getProtection(app.id);
         const showLimitStepper = customLimit[app.id] || !dailyLimitOptions.includes(dailyLimitMin);
-        const showOpensStepper = customOpens[app.id] || !dailyOpensOptions.includes(dailyOpens);
 
         return (
           <View key={app.id} style={styles.card}>
@@ -95,37 +80,9 @@ export function ProtectionLimitsStep() {
               ) : null}
             </View>
 
-            <View style={styles.field}>
-              <Text style={styles.fieldLabel}>Daily opens</Text>
-              <Dropdown
-                value={String(dailyOpens)}
-                options={opensOptions(dailyOpens)}
-                onSelect={(v) => {
-                  if (v === CUSTOM) {
-                    setCustomOpens((p) => ({ ...p, [app.id]: true }));
-                  } else {
-                    setCustomOpens((p) => ({ ...p, [app.id]: false }));
-                    setDailyOpens(app.id, Number(v));
-                  }
-                }}
-              />
-              {showOpensStepper ? (
-                <Stepper
-                  value={`${dailyOpens}`}
-                  onMinus={() => setDailyOpens(app.id, clamp(dailyOpens - 1, MIN_OPENS, MAX_OPENS))}
-                  onPlus={() => setDailyOpens(app.id, clamp(dailyOpens + 1, MIN_OPENS, MAX_OPENS))}
-                />
-              ) : null}
-            </View>
-
-            <View style={styles.meta}>
-              <Text style={styles.metaText}>
-                Soft warning at <Text style={styles.metaStrong}>{formatMinutes(softWarningMinutes(dailyLimitMin))}</Text>
-                {'  ·  '}Hard pause at <Text style={styles.metaStrong}>{formatMinutes(dailyLimitMin)}</Text>
-              </Text>
-            </View>
+           
             <Text style={styles.supportive}>
-              We'll help you pause once {app.name} stops feeling intentional.
+              We'll help you pause once {app.name} stops feeling intentional, and quietly add more friction if you keep coming back.
             </Text>
           </View>
         );

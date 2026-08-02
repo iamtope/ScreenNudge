@@ -1,4 +1,4 @@
--- Pull: extend get_circle_focus_stats with 'yesterday' and 'month' windows
+-- ScreenNudge: extend get_circle_focus_stats with 'yesterday' and 'month' windows
 -- (for the Insights Today / Yesterday / Week / Month tabs). Run after 001–008.
 -- 'today'/'week'/'all' behaviour is unchanged so the leaderboard is unaffected.
 

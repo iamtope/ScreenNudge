@@ -6,7 +6,7 @@
  *   you only edit one file.
  */
 export const site = {
-  name: 'pull',
+  name: 'ScreenNudge',
 
   /** Contact address shown on the Contact page and in the footer. */
   email: 'hello@pull.app', // TODO: replace with your real support address
@@ -30,7 +30,7 @@ export const site = {
   copyrightYear: 2026,
 } as const;
 
-/** Where the "Get pull" buttons point. Until the app is live, they route to Contact. */
+/** Where the "Get ScreenNudge" buttons point. Until the app is live, they route to Contact. */
 export function getAppHref(locale: string): string {
   return site.appStore.available ? site.appStore.url : `/${locale}/contact`;
 }

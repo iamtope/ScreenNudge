@@ -4,14 +4,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { palette } from '@/src/theme/palette';
 import { SCREEN_TOP_GAP } from '@/src/components/Screen';
 
-// Ordered onboarding steps, used to render the progress bar consistently.
 export const ONBOARDING_STEPS = [
   'questions',
   'select-apps',
   'limits',
   'protection-style',
   'plan',
-  'privacy',
   'activate',
   'circle',
 ] as const;

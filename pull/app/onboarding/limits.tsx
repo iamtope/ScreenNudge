@@ -15,7 +15,7 @@ export default function LimitsScreen() {
           How much time feels <Accent>intentional?</Accent>
         </Text>
       }
-      subtitle="Set a daily time limit and how many opens feel right for each app. This is support, never punishment."
+      subtitle="Set the daily time limit that feels intentional. ScreenNudge adapts the pause if you keep coming back."
       footer={<PrimaryButton label="Continue" onPress={() => router.push('/onboarding/protection-style')} />}
     >
       <ProtectionLimitsStep />

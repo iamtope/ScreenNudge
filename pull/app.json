@@ -1,19 +1,19 @@
 {
   "expo": {
-    "name": "pull",
+    "name": "ScreenNudge",
     "slug": "pull",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "pull",
+    "scheme": ["screennudge", "pull"],
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.abassadamo.pull",
       "appleTeamId": "B4BT4H7239",
       "infoPlist": {
-        "NSFamilyControlsUsageDescription": "Pull uses Screen Time to help you protect distracting apps and come back before doomscrolling takes over.",
-        "NSMotionUsageDescription": "Pull can ask you to take a few steps as a pause before opening a distracting app.",
+        "NSFamilyControlsUsageDescription": "ScreenNudge uses Screen Time to help you protect distracting apps and come back before doomscrolling takes over.",
+        "NSMotionUsageDescription": "ScreenNudge can ask you to take a few steps as a pause before opening a distracting app.",
         "CFBundleURLTypes": [
           {
             "CFBundleURLName": "com.abassadamo.pull.device-activity",
@@ -50,14 +50,17 @@
       [
         "react-native-device-activity",
         {
-          "appGroup": "group.com.abassadamo.pull"
+          "appGroup": "group.com.abassadamo.pull",
+          "copyToTargetFolder": false
         }
       ],
       [
         "expo-build-properties",
         {
           "ios": {
-            "deploymentTarget": "16.4"
+            "deploymentTarget": "16.4",
+            "buildReactNativeFromSource": true,
+            "usePrecompiledModules": false
           }
         }
       ],

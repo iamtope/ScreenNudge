@@ -39,7 +39,7 @@ export default function InviteDeepLinkScreen() {
         await joinWithCode(inviteCode);
         await refreshCircle();
         if (!cancelled) {
-          router.replace('/(tabs)/home');
+          router.replace('/(tabs)/leaderboard');
         }
       } catch (err) {
         if (!cancelled) {

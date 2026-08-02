@@ -1,7 +1,6 @@
 import { StyleSheet } from 'react-native';
 import { palette } from '@/src/theme/palette';
 
-/** Shared styling for nudge step components. */
 export const nudgeStyles = StyleSheet.create({
   block: { flex: 1, gap: 14 },
   hint: { color: palette.textMute, textAlign: 'center', fontSize: 15, lineHeight: 21 },

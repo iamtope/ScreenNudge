@@ -1,4 +1,4 @@
--- Pull: Pull+ subscription entitlement (server-side mirror).
+-- ScreenNudge: ScreenNudge+ subscription entitlement (server-side mirror).
 -- Run in Supabase SQL Editor after 001–007.
 --
 -- Two writers:

@@ -8,18 +8,37 @@ import { GoogleSignInButton } from '@/src/components/GoogleSignInButton';
 import { isSupabaseConfigured } from '@/src/lib/supabase';
 import { friendlyAccountError } from '@/src/lib/network';
 import { signInWithApple, signInWithGoogle } from '@/src/services/auth';
+import { useOnboarding } from '@/src/state/onboarding';
 import { useSession } from '@/src/state/session';
 import { palette } from '@/src/theme/palette';
 
 export default function SignInScreen() {
   const router = useRouter();
-  const { redirect, invite } = useLocalSearchParams<{ redirect?: string; invite?: string }>();
+  const { redirect, invite, returnTo } = useLocalSearchParams<{
+    redirect?: string;
+    invite?: string;
+    returnTo?: string;
+  }>();
   const { refreshCircle, setPendingInviteCode } = useSession();
+  const { hasProtectionSetup } = useOnboarding();
   const [busy, setBusy] = useState<'apple' | 'google' | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const finish = async () => {
     await refreshCircle();
+
+    if (redirect === 'onboarding-join' && invite) {
+      router.replace({
+        pathname: '/circle/join',
+        params: { code: invite, returnTo: 'onboarding' },
+      });
+      return;
+    }
+
+    if (redirect === 'join' && invite) {
+      router.replace({ pathname: '/circle/join', params: { code: invite } });
+      return;
+    }
 
     if (invite) {
       router.replace(`/invite/${invite}`);
@@ -32,12 +51,20 @@ export default function SignInScreen() {
     }
 
     if (redirect === 'premium') {
-      router.replace('/premium');
+      router.replace({
+        pathname: '/premium',
+        params: returnTo ? { returnTo } : {},
+      });
       return;
     }
 
-    if (redirect === 'join' && invite) {
-      router.replace({ pathname: '/circle/join', params: { code: invite } });
+    // Signing in restores limits, mode and bedtime from the server, but never the
+    // Screen Time selection — that is device-local. On a new install a returning
+    // user still has to pick apps, so send them to that step rather than to Home
+    // with nothing guarded. The personalization questions are skipped: they only
+    // flavour the plan summary and are not persisted anywhere.
+    if (!hasProtectionSetup) {
+      router.replace('/onboarding/select-apps');
       return;
     }
 
@@ -83,7 +110,7 @@ export default function SignInScreen() {
   return (
     <Screen innerStyle={styles.inner}>
       <View style={styles.hero}>
-        <Text style={styles.eyebrow}>Pull account</Text>
+        <Text style={styles.eyebrow}>ScreenNudge account</Text>
         <Text style={styles.title}>
           Sign in to unlock{'\n'}
           <Text style={styles.accent}>your circle.</Text>
@@ -96,7 +123,7 @@ export default function SignInScreen() {
       <View style={styles.actions}>
         {!isSupabaseConfigured ? (
           <Text style={styles.warning}>
-            Add EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY to a local .env file.
+            Sign-in is temporarily unavailable. Try again later.
           </Text>
         ) : null}
 

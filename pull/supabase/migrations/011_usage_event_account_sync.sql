@@ -1,4 +1,4 @@
--- Pull: account-backed usage event sync for Insights.
+-- ScreenNudge: account-backed usage event sync for Insights.
 --
 -- Local attempt/resist history gets a client_event_id so a guest's history can be
 -- backfilled after sign-in without creating duplicates. Logged-in devices can

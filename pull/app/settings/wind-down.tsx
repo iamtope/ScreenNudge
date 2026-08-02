@@ -33,14 +33,14 @@ export default function WindDownSettingsScreen() {
       <SettingsSection title="Bedtime blocking">
         {!pullPlusUnlocked ? (
           <>
-            <SettingsInfoRow label="Bedtime blocking" value="Pull+" />
+            <SettingsInfoRow label="Bedtime blocking" value="ScreenNudge+" />
             <SettingsNote>
               Auto-block your guarded apps during sleep hours. Protect your wind-down and morning
               from the apps that pull hardest.
             </SettingsNote>
             <SettingsActionRow
               icon="star-circle-outline"
-              label="Unlock with Pull+"
+              label="Unlock with premium"
               onPress={() => router.push('/premium')}
             />
           </>

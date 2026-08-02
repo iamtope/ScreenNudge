@@ -1,10 +1,5 @@
 import type { ProtectionMode } from '@/src/domain/onboarding';
 
-/**
- * Agnostic, composable nudge steps. Each kind maps to a standalone component
- * (see src/components/nudge/*). A flow is just an ordered list of step configs,
- * so any step can be reused individually or recomposed per mode in the future.
- */
 export type NudgeStepKind =
   | 'breathe'
   | 'intention'
@@ -37,16 +32,7 @@ export const intentionOptions = [
   "I don't know",
 ] as const;
 
-/**
- * Build a flow for a mode. Each open shows exactly ONE friction step (rotating by
- * `attempt` so it varies — sometimes a breath, sometimes a challenge, sometimes a
- * wait), then the open/stay-off decision. The mode sets which pool that single
- * step is drawn from (harder for strong). `opensOver` adds one extra step once the
- * user has exceeded their configured opens/day (Apple can't enforce opens
- * natively, so we add friction here instead).
- */
 export function getNudgeFlow(mode: ProtectionMode, opensOver = false, attempt = 1): NudgeFlow {
-  // Pick one item from a pool, rotating by attempt number (1-indexed).
   const pick = (pool: NudgeStepConfig[]): NudgeStepConfig =>
     pool[(Math.max(attempt, 1) - 1) % pool.length];
 
@@ -78,7 +64,6 @@ export function getNudgeFlow(mode: ProtectionMode, opensOver = false, attempt = 
     return { mode, steps };
   }
 
-  // balanced — one rotating friction step, then the choice.
   const step = pick([
     { kind: 'breathe', seconds: 5 },
     { kind: 'intention' },
@@ -95,7 +80,6 @@ export function getNudgeFlow(mode: ProtectionMode, opensOver = false, attempt = 
   return { mode, steps };
 }
 
-/** Human label for a step, used for progress headers. */
 export function stepTitle(kind: NudgeStepKind): string {
   switch (kind) {
     case 'breathe':

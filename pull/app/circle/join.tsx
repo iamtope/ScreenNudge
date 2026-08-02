@@ -23,7 +23,10 @@ import { palette } from '@/src/theme/palette';
 
 export default function JoinCircleScreen() {
   const router = useRouter();
-  const { code: codeParam } = useLocalSearchParams<{ code?: string }>();
+  const { code: codeParam, returnTo } = useLocalSearchParams<{
+    code?: string;
+    returnTo?: string;
+  }>();
   const { hasAccount } = useAccess();
   const { refreshCircle } = useSession();
   const [code, setCode] = useState(codeParam ?? '');
@@ -38,7 +41,13 @@ export default function JoinCircleScreen() {
     }
 
     if (!hasAccount) {
-      router.push({ pathname: '/auth/sign-in', params: { redirect: 'join', invite: trimmed } });
+      router.push({
+        pathname: '/auth/sign-in',
+        params: {
+          redirect: returnTo === 'onboarding' ? 'onboarding-join' : 'join',
+          invite: trimmed,
+        },
+      });
       return;
     }
 
@@ -47,7 +56,9 @@ export default function JoinCircleScreen() {
     try {
       await joinWithCode(trimmed);
       await refreshCircle();
-      router.replace('/(tabs)/home');
+      router.replace(
+        returnTo === 'onboarding' ? '/onboarding/circle' : '/(tabs)/leaderboard',
+      );
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Could not join that circle.';
       if (message.includes('Invalid invite code')) {

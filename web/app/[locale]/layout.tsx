@@ -11,16 +11,16 @@ export function generateStaticParams() {
   return locales.map((locale) => ({ locale }));
 }
 
-const title = 'pull — come back before the scroll takes over';
+const title = 'ScreenNudge — come back before the scroll takes over';
 const description =
-  'pull is the iPhone screen-time app that puts one calm pause between you and the apps that pull you in — backed by a circle of friends who make it stick.';
+  'ScreenNudge is the iPhone screen-time app that creates a moment of intention before you open distracting apps — backed by a circle of friends who help you stick with it.';
 
 export const metadata: Metadata = {
-  title: { default: title, template: '%s · pull' },
+  title: { default: title, template: '%s · ScreenNudge' },
   description,
-  applicationName: 'pull',
+  applicationName: 'ScreenNudge',
   icons: { icon: '/favicon.svg' },
-  openGraph: { title, description, type: 'website', siteName: 'pull' },
+  openGraph: { title, description, type: 'website', siteName: 'ScreenNudge' },
   twitter: { card: 'summary_large_image', title, description },
 };
 

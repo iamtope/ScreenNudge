@@ -10,15 +10,14 @@ import { useSession } from '@/src/state/session';
 import { useHiddenMembers } from '@/src/state/hiddenMembers';
 import { getCircleFocusStats, getRoomActiveSessions, type FocusStatRow } from '@/src/services/focus';
 import { getCircleUsageStats, type UsageStatRow } from '@/src/services/usage';
+import { getCircleStreaks, type CircleStreak } from '@/src/services/streak';
 import { usePacer } from '@/src/state/pacer';
 import { PacerAvatar } from '@/src/components/PacerAvatar';
 import { PACER_BOTS, botRoomSession, botStats, type PacerBot } from '@/src/domain/pacer';
 import { palette } from '@/src/theme/palette';
 
-/** The leaderboard only ranks over these windows. */
 type LeaderWindow = 'today' | 'week' | 'all';
 
-/** A leaderboard row — a real member (`bot: null`) or a disclosed bot. */
 type Player = {
   id: string;
   name: string;
@@ -27,12 +26,17 @@ type Player = {
   bot: PacerBot | null;
   focusMinutes: number;
   resists: number;
+  /** Consecutive days under their own goal. Not scored — it is its own thing. */
+  streak: number;
   live: boolean;
   score: number;
 };
 
-/** Points = focus minutes + each resist worth 5 min of focus. */
 const RESIST_POINTS = 5;
+const leaderboardCache = new Map<
+  string,
+  { focus: FocusStatRow[]; usage: UsageStatRow[]; liveIds: Set<string> }
+>();
 
 const MEDAL_SILVER = '#c7ccd6';
 const MEDAL_BRONZE = '#cd9b6a';
@@ -58,7 +62,7 @@ function Avatar({ player, size = 34 }: { player: Player; size?: number }) {
 
 function LeaderboardContent() {
   const router = useRouter();
-  const [tab, setTab] = useState<LeaderWindow>('week');
+  const [tab, setTab] = useState<LeaderWindow>('today');
   const { user, circle, refreshCircle } = useSession();
   const { enabled: pacerEnabled } = usePacer();
   const { hidden, hide } = useHiddenMembers();
@@ -66,31 +70,46 @@ function LeaderboardContent() {
   const [focus, setFocus] = useState<FocusStatRow[]>([]);
   const [usage, setUsage] = useState<UsageStatRow[]>([]);
   const [liveIds, setLiveIds] = useState<Set<string>>(new Set());
+  const [streaks, setStreaks] = useState<CircleStreak[]>([]);
+  const [inviteOpen, setInviteOpen] = useState(false);
 
-  // Refetch whenever the tab regains focus (and when the window/circle changes),
-  // so switching back to the leaderboard always shows current numbers.
   useFocusEffect(
     useCallback(() => {
-      // Keep circle membership fresh (a friend may have joined) now that the
-      // home screen no longer does this.
       if (user) void refreshCircle();
       if (!circleId) {
         setFocus([]);
         setUsage([]);
         setLiveIds(new Set());
+        setStreaks([]);
         return;
+      }
+      const cacheKey = `${circleId}:${tab}`;
+      const cached = leaderboardCache.get(cacheKey);
+      if (cached) {
+        setFocus(cached.focus);
+        setUsage(cached.usage);
+        setLiveIds(new Set(cached.liveIds));
       }
       let cancelled = false;
       void (async () => {
-        const [focusRows, usageRows, room] = await Promise.all([
+        const [focusRows, usageRows, room, streakRows] = await Promise.all([
           getCircleFocusStats(circleId, tab),
           getCircleUsageStats(circleId, tab),
           getRoomActiveSessions(circleId),
+          // Streaks are not windowed — a streak is a streak whichever tab is open.
+          getCircleStreaks(circleId),
         ]);
         if (cancelled) return;
         setFocus(focusRows);
         setUsage(usageRows);
-        setLiveIds(new Set(room.map((m) => m.userId)));
+        setStreaks(streakRows);
+        const nextLiveIds = new Set(room.map((m) => m.userId));
+        setLiveIds(nextLiveIds);
+        leaderboardCache.set(cacheKey, {
+          focus: focusRows,
+          usage: usageRows,
+          liveIds: nextLiveIds,
+        });
       })();
       return () => {
         cancelled = true;
@@ -98,11 +117,11 @@ function LeaderboardContent() {
     }, [circleId, tab, user, refreshCircle]),
   );
 
-  // Build every player (real members + disclosed bots), unranked.
   const allPlayers = useMemo(() => {
     const members = circle?.members ?? [];
     const focusBy = new Map(focus.map((r) => [r.userId, r]));
     const usageBy = new Map(usage.map((r) => [r.userId, r]));
+    const streakBy = new Map(streaks.map((r) => [r.userId, r]));
     const players: Player[] = members.map((member) => {
       const focusMinutes = focusBy.get(member.id)?.focusMinutes ?? 0;
       const resists = usageBy.get(member.id)?.resists ?? 0;
@@ -114,6 +133,7 @@ function LeaderboardContent() {
         bot: null,
         focusMinutes,
         resists,
+        streak: streakBy.get(member.id)?.current ?? 0,
         live: liveIds.has(member.id),
         score: focusMinutes + resists * RESIST_POINTS,
       };
@@ -130,6 +150,8 @@ function LeaderboardContent() {
           bot,
           focusMinutes: stats.focusMinutes,
           resists: stats.resists,
+          // Pacer bots have no goal of their own, so no streak to show.
+          streak: 0,
           live: botRoomSession(bot) != null,
           score: stats.focusMinutes + stats.resists * RESIST_POINTS,
         });
@@ -138,7 +160,6 @@ function LeaderboardContent() {
     return players;
   }, [circle?.members, focus, usage, liveIds, user?.id, pacerEnabled, tab]);
 
-  // Hidden members never occupy ranks; ranking is over the visible set only.
   const data = useMemo(
     () =>
       allPlayers
@@ -167,7 +188,25 @@ function LeaderboardContent() {
 
   return (
     <>
-      <Text style={styles.eyebrow}>Your circle</Text>
+      <View style={styles.eyebrowRow}>
+        <Text style={styles.eyebrow}>Your circle</Text>
+        <Pressable
+          onPress={() => setInviteOpen((open) => !open)}
+          style={[styles.inviteToggle, inviteOpen && styles.inviteToggleOpen]}
+          accessibilityRole="button"
+          accessibilityLabel={inviteOpen ? 'Close circle invite options' : 'Add or join a circle'}
+          accessibilityState={{ expanded: inviteOpen }}
+        >
+          <MaterialCommunityIcons
+            name={inviteOpen ? 'close' : 'account-plus-outline'}
+            size={17}
+            color={inviteOpen ? palette.text : palette.brass}
+          />
+          <Text style={[styles.inviteToggleLabel, inviteOpen && styles.inviteToggleLabelOpen]}>
+            {inviteOpen ? 'Close' : 'Add or join'}
+          </Text>
+        </Pressable>
+      </View>
       <Text style={styles.title}>
         {focusingNow > 0 ? (
           <>
@@ -179,6 +218,16 @@ function LeaderboardContent() {
           </>
         )}
       </Text>
+
+      {inviteOpen ? (
+        <View style={styles.invitePanel}>
+          <CircleInviteSection
+            compact
+            canInvite={Boolean(user)}
+            onRequireSignIn={() => router.push('/auth/sign-in')}
+          />
+        </View>
+      ) : null}
 
       <View style={styles.tabs}>
         {(['today', 'week', 'all'] as const).map((value) => (
@@ -227,6 +276,12 @@ function LeaderboardContent() {
                   </View>
                 ) : (
                   <Text style={styles.meta}>
+                    {player.streak > 0 ? (
+                      <Text style={styles.streak}>
+                        {'\u{1F525}'} {player.streak}
+                        {'  ·  '}
+                      </Text>
+                    ) : null}
                     {player.resists} resist{player.resists === 1 ? '' : 's'} · {formatMinutes(player.focusMinutes)}
                   </Text>
                 )}
@@ -240,15 +295,6 @@ function LeaderboardContent() {
         })}
       </View>
       <Text style={styles.hint}>Long-press anyone to hide them. Unhide in Settings → Hidden friends.</Text>
-
-      <View style={styles.inviteSection}>
-        <Text style={styles.sectionEyebrow}>Grow your circle</Text>
-        <CircleInviteSection
-          compact
-          canInvite={Boolean(user)}
-          onRequireSignIn={() => router.push('/auth/sign-in')}
-        />
-      </View>
     </>
   );
 }
@@ -270,9 +316,25 @@ export default function LeaderboardScreen() {
 const styles = StyleSheet.create({
   scroll: { flex: 1 },
   content: { padding: 20, paddingBottom: 24 },
+  eyebrowRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
   eyebrow: { color: palette.textMute, fontSize: 13, textTransform: 'uppercase', letterSpacing: 2 },
+  inviteToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderWidth: 1,
+    borderColor: palette.brass,
+    backgroundColor: palette.brassSoft,
+    borderRadius: 999,
+    paddingHorizontal: 11,
+    paddingVertical: 7,
+  },
+  inviteToggleOpen: { borderColor: palette.line, backgroundColor: palette.surface },
+  inviteToggleLabel: { color: palette.brass, fontSize: 13, fontWeight: '700' },
+  inviteToggleLabelOpen: { color: palette.text },
   title: { color: palette.text, fontSize: 39, fontWeight: '700', lineHeight: 43, marginTop: 8, marginBottom: 16 },
   accent: { color: palette.brass, fontStyle: 'italic' },
+  invitePanel: { marginBottom: 16 },
   tabs: { flexDirection: 'row', gap: 8, marginBottom: 16 },
   tab: { flex: 1, alignItems: 'center', paddingVertical: 9, borderRadius: 999, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.line },
   tabActive: { backgroundColor: palette.surface2 },
@@ -296,7 +358,6 @@ const styles = StyleSheet.create({
   barFill: { height: 4, borderRadius: 99, backgroundColor: palette.brass },
   score: { color: palette.text, fontWeight: '800', fontSize: 17 },
   pts: { color: palette.textMute, fontWeight: '600', fontSize: 13 },
+  streak: { color: palette.brass, fontWeight: '700' },
   hint: { color: palette.textMute, fontSize: 13, marginTop: 10, textAlign: 'center' },
-  sectionEyebrow: { color: palette.textMute, fontSize: 12, textTransform: 'uppercase', letterSpacing: 1.4 },
-  inviteSection: { marginTop: 24, gap: 10 },
 });

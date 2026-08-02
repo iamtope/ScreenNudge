@@ -1,19 +1,19 @@
-// Micro-achievements: thresholds on metrics the app already tracks. Each unlock
-// fires a tactile celebration; the profile shelf shows earned + locked-glowing.
 
 import type { ComponentProps } from 'react';
 import type { MaterialCommunityIcons } from '@expo/vector-icons';
 
-/** A MaterialCommunityIcons glyph name (type-checked against the real set). */
 export type AchievementIcon = ComponentProps<typeof MaterialCommunityIcons>['name'];
 
 export type AchievementMetric = 'resists' | 'streak' | 'focusMinutes' | 'focusSessions';
 
-export type Achievement = {
+export type Celebration = {
   id: string;
   title: string;
   description: string;
   icon: AchievementIcon;
+};
+
+export type Achievement = Celebration & {
   metric: AchievementMetric;
   threshold: number;
 };

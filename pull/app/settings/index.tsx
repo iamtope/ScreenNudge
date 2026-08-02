@@ -63,10 +63,10 @@ export default function SettingsScreen() {
   const firstName = getFirstName(user, profile);
   const protectionValue =
     activated && protectedCount > 0
-      ? `${protectionModeName(currentLimit.mode)} · ${protectedCount} ${usingScreenTime ? 'Screen Time' : 'demo'}`
+      ? `${protectionModeName(currentLimit.mode)} · ${protectedCount} ${usingScreenTime ? 'Screen Time' : 'on-device'}`
       : 'Not active';
   const windDownValue = !pullPlusUnlocked
-    ? 'Pull+'
+    ? 'ScreenNudge+'
     : bedtimeEnabled
       ? `${formatClockTime(bedtimeStart)}-${formatClockTime(bedtimeEnd)}`
       : 'Off';
@@ -132,13 +132,13 @@ export default function SettingsScreen() {
         />
         <SettingsNavRow
           icon="star-circle-outline"
-          label="Pull+ subscription"
+          label="ScreenNudge+ subscription"
           value={pullPlusUnlocked ? 'Active' : null}
           onPress={() => router.push('/premium')}
         />
       </SettingsSection>
 
-      <SettingsSection title="Follow Pull">
+      <SettingsSection title="Follow ScreenNudge">
         {SOCIALS.map((social) => (
           <Pressable
             key={social.id}
@@ -155,7 +155,7 @@ export default function SettingsScreen() {
       </SettingsSection>
 
       <Text style={styles.footnote}>
-        On iPhone, guarded apps use Apple&apos;s Screen Time shield. Tap Continue in Pull for the
+        On iPhone, guarded apps use Apple&apos;s Screen Time shield. Tap Continue in ScreenNudge for the
         pause flow, or Close to keep the app blocked and count the win.
       </Text>
     </SettingsScaffold>

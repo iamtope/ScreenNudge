@@ -3,6 +3,7 @@ import { ActivityIndicator, View, Text, StyleSheet, Pressable } from 'react-nati
 import { useRouter } from 'expo-router';
 import { Screen } from '@/src/components/Screen';
 import { useSession } from '@/src/state/session';
+import { useOnboarding } from '@/src/state/onboarding';
 import { getActiveMode } from '@/src/services/protection';
 import { takePendingNav, whenInitialDeepLinkChecked } from '@/src/services/pendingNavigation';
 import { palette } from '@/src/theme/palette';
@@ -10,15 +11,19 @@ import { palette } from '@/src/theme/palette';
 export default function LandingScreen() {
   const router = useRouter();
   const { user, isLoading } = useSession();
+  const { onboardingComplete, hasProtectionSetup, hydrationReady } = useOnboarding();
   const handledRef = useRef(false);
+
+  // Protection is local, so a guest who finished onboarding is just as set up as a
+  // signed-in one — and an account on its own proves nothing, since the Screen Time
+  // selection cannot come from the server. Route on the setup, not the session.
+  const isReturning = onboardingComplete || hasProtectionSetup;
 
   useEffect(() => {
     if (isLoading || handledRef.current) {
       return;
     }
     let active = true;
-    // Let any cold-start deep link resolve first so the shield/notification target
-    // wins over the default home redirect.
     void whenInitialDeepLinkChecked().then(() => {
       if (!active || handledRef.current) {
         return;
@@ -45,25 +50,41 @@ export default function LandingScreen() {
         router.replace('/(tabs)/focus');
         return;
       }
-      if (user) {
+      if (nav?.kind === 'invite') {
+        handledRef.current = true;
+        router.replace({ pathname: '/invite/[code]', params: { code: nav.code } });
+        return;
+      }
+      // Deep links above are time-sensitive (the user just tapped a guarded app), so
+      // only the returning-user redirect waits on the persisted onboarding flag.
+      if (!hydrationReady) {
+        return;
+      }
+      if (isReturning) {
         handledRef.current = true;
         router.replace('/(tabs)/home');
+        return;
+      }
+      // Signed in with nothing guarded on this device (a fresh install of an existing
+      // account). Offering "I already have an account" again would be nonsense — send
+      // them to pick apps instead.
+      if (user) {
+        handledRef.current = true;
+        router.replace('/onboarding/select-apps');
       }
     });
     return () => {
       active = false;
     };
-  }, [isLoading, user, router]);
-
-  const continueAsGuest = () => {
-    router.replace('/(tabs)/home');
-  };
+  }, [isLoading, hydrationReady, isReturning, user, router]);
 
   const signIn = () => {
     router.push('/auth/sign-in');
   };
 
-  if (isLoading || user) {
+  // `user` is included so a signed-in account never flashes the marketing screen on
+  // its way to select-apps.
+  if (isLoading || !hydrationReady || isReturning || user) {
     return (
       <Screen innerStyle={styles.centered}>
         <ActivityIndicator color={palette.brass} />
@@ -74,22 +95,19 @@ export default function LandingScreen() {
   return (
     <Screen innerStyle={styles.inner}>
       <View style={styles.hero}>
-        <Text style={styles.eyebrow}>Pull · est. 2026</Text>
+        <Text style={styles.eyebrow}>ScreenNudge · est. 2026</Text>
         <Text style={styles.title}>
-          Protect each other's{'\n'}
+          Take back your{'\n'}
           <Text style={styles.accent}>attention.</Text>
         </Text>
         <Text style={styles.body}>
-          Pull helps you protect your attention and come back before doomscrolling takes over.
+          ScreenNudge helps you protect your attention and come back before doomscrolling takes over.
         </Text>
       </View>
 
       <View style={styles.cta}>
         <Pressable onPress={() => router.push('/onboarding/questions')} style={styles.primary}>
-          <Text style={styles.primaryLabel}>Begin</Text>
-        </Pressable>
-        <Pressable onPress={continueAsGuest} style={styles.ghost}>
-          <Text style={styles.ghostLabel}>Continue without account</Text>
+          <Text style={styles.primaryLabel}>Get started</Text>
         </Pressable>
         <Pressable onPress={signIn} style={styles.ghost}>
           <Text style={styles.ghostLabel}>I already have an account</Text>
@@ -118,4 +136,5 @@ const styles = StyleSheet.create({
   primaryLabel: { color: palette.bg, fontSize: 16, fontWeight: '700' },
   ghost: { paddingVertical: 14, alignItems: 'center' },
   ghostLabel: { color: palette.textMute, fontSize: 14 },
+  note: { color: palette.textMute, fontSize: 13, textAlign: 'center', paddingBottom: 6 },
 });

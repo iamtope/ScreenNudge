@@ -1,4 +1,4 @@
--- Pull: keep synced protection opens/day aligned with the app's custom limit.
+-- ScreenNudge: keep synced protection opens/day aligned with the app's custom limit.
 --
 -- The UI allows custom opens/day up to 99. Earlier account sync clamped to 20,
 -- which could overwrite a user's local custom setting after sign-in/reinstall.

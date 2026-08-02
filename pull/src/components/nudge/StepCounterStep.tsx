@@ -12,7 +12,6 @@ export function StepCounterStep({ config, onComplete }: NudgeStepProps) {
   const [available, setAvailable] = useState<boolean | null>(null);
   const subRef = useRef<StepSubscription | null>(null);
 
-  // Fallback: timed "walk away" when no pedometer (≈1s per 2 target steps).
   const fallbackSeconds = Math.max(15, Math.round(target / 2));
   const [remaining, setRemaining] = useState(fallbackSeconds);
 

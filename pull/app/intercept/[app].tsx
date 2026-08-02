@@ -6,7 +6,7 @@ import { Screen } from '@/src/components/Screen';
 import { nudgeStepRegistry } from '@/src/components/nudge';
 import { getNudgeFlow, stepTitle } from '@/src/domain/nudge';
 import type { ProtectionMode } from '@/src/domain/onboarding';
-import { protectionModeName } from '@/src/domain/onboarding';
+import { REPEAT_UNLOCK_FRICTION_THRESHOLD, protectionModeName } from '@/src/domain/onboarding';
 import {
   formatAttemptLabel,
   getLocalTodayOpens,
@@ -38,7 +38,6 @@ export default function InterceptScreen() {
   const targetId = protectionTargets[0]?.id;
   const protection = targetId ? getProtection(targetId) : undefined;
   const mode = resolveMode(params.mode, protection?.mode ?? 'balanced');
-  const dailyOpens = protection?.dailyOpens ?? 8;
 
   const [attemptLabel, setAttemptLabel] = useState('Opening attempt');
   const [opensOver, setOpensOver] = useState(false);
@@ -52,7 +51,7 @@ export default function InterceptScreen() {
     let cancelled = false;
     void (async () => {
       const opens = await getLocalTodayOpens();
-      const overBudget = opens >= dailyOpens;
+      const overBudget = opens >= REPEAT_UNLOCK_FRICTION_THRESHOLD;
       const count = await recordOpenAttempt({ appName, mode, opensOver: overBudget });
       if (cancelled) {
         return;
@@ -61,13 +60,12 @@ export default function InterceptScreen() {
       setOpensOver(overBudget);
       setAttempt(count);
       setReady(true);
-      // Keep the blocked-app shield's attempt count current for the next block.
       void refreshDailyShield(await loadProtectionSnapshot());
     })();
     return () => {
       cancelled = true;
     };
-  }, [appName, dailyOpens, mode]);
+  }, [appName, mode]);
 
   const flow = useMemo(() => getNudgeFlow(mode, opensOver, attempt), [mode, opensOver, attempt]);
   const stepConfig = flow.steps[stepIndex];
@@ -86,13 +84,13 @@ export default function InterceptScreen() {
     try {
       const pass = await grantTemporaryAccess(mode);
       if (!pass.granted) {
-        setOpenError('Pull could not unlock your guarded apps. Try Re-apply Screen Time shields in Settings.');
+        setOpenError('ScreenNudge could not unlock your guarded apps. Try Re-apply Screen Time shields in Settings.');
         return;
       }
       await recordOpenGranted({ appName, mode, opensOver });
       router.replace('/(tabs)/home');
     } catch {
-      setOpenError('Pull could not unlock your guarded apps. Try again.');
+      setOpenError('ScreenNudge could not unlock your guarded apps. Try again.');
     } finally {
       setOpening(false);
     }
@@ -100,7 +98,7 @@ export default function InterceptScreen() {
 
   const resist = async () => {
     await recordResist({ appName, mode, opensOver });
-    void evaluate(); // celebrate any newly-earned resist/streak achievement
+    void evaluate();
     router.replace('/(tabs)/home');
   };
 
@@ -122,7 +120,7 @@ export default function InterceptScreen() {
       </View>
       <Text style={styles.modeChip}>
         {protectionModeName(mode)} · {stepTitle(stepConfig.kind)}
-        {opensOver ? ' · over your opens' : ''}
+        {opensOver ? ' · repeat attempt' : ''}
       </Text>
       <Text style={styles.title}>
         Unlock <Text style={styles.accent}>{appName}?</Text>

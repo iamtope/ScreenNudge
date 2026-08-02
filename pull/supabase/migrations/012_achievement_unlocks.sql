@@ -1,4 +1,4 @@
--- Pull: account-backed achievement unlocks.
+-- ScreenNudge: account-backed achievement unlocks.
 --
 -- Metrics are recomputed from usage_events/focus_sessions, but the unlock state
 -- itself is persisted so Profile achievements survive reinstall and multi-device.
