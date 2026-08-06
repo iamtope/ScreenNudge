@@ -19,7 +19,14 @@ import {
   themePreferenceLabel,
   useThemePreference,
 } from '@/src/state/theme';
-import { formatMinutes, protectionModeName } from '@/src/domain/onboarding';
+import { protectionModeName } from '@/src/domain/onboarding';
+import {
+  FAQ_URL,
+  PRIVACY_URL,
+  SUPPORT_URL,
+  TERMS_URL,
+  WEBSITE_URL,
+} from '@/src/config/legal';
 
 const SOCIALS = [
   {
@@ -71,7 +78,7 @@ export default function SettingsScreen() {
       ? `${formatClockTime(bedtimeStart)}-${formatClockTime(bedtimeEnd)}`
       : 'Off';
 
-  const openSocial = async (url: string, label: string) => {
+  const openLink = async (url: string, label: string) => {
     try {
       await Linking.openURL(url);
     } catch {
@@ -138,11 +145,39 @@ export default function SettingsScreen() {
         />
       </SettingsSection>
 
+      <SettingsSection title="Help & legal">
+        <SettingsNavRow
+          icon="web"
+          label="ScreenNudge website"
+          onPress={() => void openLink(WEBSITE_URL, 'ScreenNudge website')}
+        />
+        <SettingsNavRow
+          icon="frequently-asked-questions"
+          label="Frequently asked questions"
+          onPress={() => void openLink(FAQ_URL, 'Frequently asked questions')}
+        />
+        <SettingsNavRow
+          icon="message-text-outline"
+          label="Contact support"
+          onPress={() => void openLink(SUPPORT_URL, 'Contact support')}
+        />
+        <SettingsNavRow
+          icon="shield-lock-outline"
+          label="Privacy policy"
+          onPress={() => void openLink(PRIVACY_URL, 'Privacy policy')}
+        />
+        <SettingsNavRow
+          icon="file-document-outline"
+          label="Terms of use"
+          onPress={() => void openLink(TERMS_URL, 'Terms of use')}
+        />
+      </SettingsSection>
+
       <SettingsSection title="Follow ScreenNudge">
         {SOCIALS.map((social) => (
           <Pressable
             key={social.id}
-            onPress={() => void openSocial(social.url, social.label)}
+            onPress={() => void openLink(social.url, social.label)}
             style={styles.socialRow}
           >
             <View style={styles.socialLeft}>

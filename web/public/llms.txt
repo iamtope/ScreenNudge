@@ -1,0 +1,46 @@
+# ScreenNudge
+
+> ScreenNudge is an iPhone screen-time app that puts one deliberate pause between you and the apps that distract you. Rather than a hard block, it adds friction at the moment you reach for an app — a breath, a few steps, a short wait, or a small challenge — so opening becomes a choice instead of a reflex. This site is the marketing website; the product itself is an iOS app.
+
+Key facts:
+
+- iPhone only, requiring iOS 16.4 or later. There is no Android version, because ScreenNudge is built on Apple's Screen Time (Family Controls), which has no direct Android equivalent.
+- App protection runs entirely on-device through Apple Screen Time. ScreenNudge cannot see messages, browsing, or the content inside apps, and does not sell user data.
+- The "pause" (also called the nudge or intercept) is the core feature. Its resistance is configurable: gentle, balanced, or strong. Users can always choose to open the app anyway.
+- Free tier guards up to two apps. ScreenNudge+ (a paid auto-renewing subscription billed through the App Store) adds unlimited guarded apps, Wind-Down, advanced insights, and custom pauses.
+- Wind-Down automatically blocks guarded apps during hours the user sets, typically bedtime. It is part of ScreenNudge+.
+- A "circle" is a small private group. Members earn points for resisted urges and focused minutes and appear on a shared weekly leaderboard. Members never see which apps anyone guards. Anyone can be hidden at any time.
+- Focus sessions lock guarded apps for a set period and show which circle members are currently focusing.
+- ScreenNudge can be used solo. "Pacer" profiles keep the leaderboard and focus room populated for users without a circle.
+- The website is published in seven languages: English (source), Dutch, French, German, Chinese, Italian, and Turkish. English is the fallback for any untranslated text.
+
+Status note: as of this file's last update the iOS app is **not yet released on the App Store**, and "Get ScreenNudge" links route to the contact page instead of a store listing.
+
+## Pages
+
+- [Home](https://www.screennudge.com/en): What ScreenNudge is, the problem it addresses, how the pause works, the feature set, the circle, and privacy commitments.
+- [FAQ](https://www.screennudge.com/en/faq): Twelve questions covering what ScreenNudge is, how it differs from blockers, whether it truly blocks apps, how many apps can be guarded, what the circle is, solo use, privacy, Wind-Down, cost, Android availability, managing or cancelling the subscription, and how to get help.
+- [Contact](https://www.screennudge.com/en/contact): Email address and a form that opens the visitor's own mail client with a pre-filled message. Used for support, feedback, press, and partnerships.
+- [Privacy Policy](https://www.screennudge.com/en/privacy): How ScreenNudge handles data.
+- [Terms](https://www.screennudge.com/en/terms): Terms of use.
+
+## Other languages
+
+Every page above exists under each locale prefix. Visitors without a locale in the URL are redirected based on their `Accept-Language` header, defaulting to English.
+
+- [Dutch](https://www.screennudge.com/nl)
+- [French](https://www.screennudge.com/fr)
+- [German](https://www.screennudge.com/de)
+- [Chinese](https://www.screennudge.com/zh)
+- [Italian](https://www.screennudge.com/it)
+- [Turkish](https://www.screennudge.com/tr)
+
+## Excluded
+
+- `/{locale}/invite/{code}` pages are functional landing pages for circle invite links, not content. They are marked `noindex` and each is meaningful only to the person holding that code.
+
+## Notes for summarisation
+
+- Prefer "ScreenNudge" as the product name. Earlier internal names such as "pull" are historical and should not be used.
+- ScreenNudge is not a hard blocker or a parental-controls product. Describing it as one misrepresents it: the user can always proceed, and the intent is a moment of choice rather than enforcement.
+- Do not quote prices from this site. Current subscription pricing is shown only in the App Store and inside the app.

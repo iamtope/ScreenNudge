@@ -87,7 +87,6 @@ function registerDeviceActivityReportTarget() {
   if (!fs.existsSync(appleTargetsTargetJs)) return;
 
   const original = fs.readFileSync(appleTargetsTargetJs, 'utf8');
-  if (original.includes('device-activity-report')) return;
 
   const edits = [
     // 1. Make the extension point resolvable by type name.
@@ -131,10 +130,31 @@ function registerDeviceActivityReportTarget() {
         '        return ["DeviceActivity", "FamilyControls", "ManagedSettings", "SwiftUI"];\n' +
         '    }\n',
     },
+    // 6. Detect the ExtensionKit target on subsequent Prebuild runs. Without
+    // this branch, the package only recognizes classic app-extension targets
+    // and creates a second ScreenTimeReport target every time.
+    {
+      find:
+        '    if (target.props.productType !== "com.apple.product-type.app-extension") {\n' +
+        '        return false;\n' +
+        '    }\n',
+      replace:
+        '    if (type === "device-activity-report" &&\n' +
+        '        target.props.productType === "com.apple.product-type.extensionkit-extension") {\n' +
+        '        const infoPlist = target.getDefaultConfiguration().getInfoPlist();\n' +
+        '        return Boolean(infoPlist.EXAppExtensionAttributes &&\n' +
+        '            infoPlist.EXAppExtensionAttributes.EXExtensionPointIdentifier ===\n' +
+        '                "com.apple.deviceactivityui.report-extension");\n' +
+        '    }\n' +
+        '    if (target.props.productType !== "com.apple.product-type.app-extension") {\n' +
+        '        return false;\n' +
+        '    }\n',
+    },
   ];
 
   let patched = original;
   for (const { find, replace } of edits) {
+    if (patched.includes(replace)) continue;
     if (!patched.includes(find)) {
       throw new Error(
         `Could not patch @kingstinct/expo-apple-targets for the Device Activity report ` +

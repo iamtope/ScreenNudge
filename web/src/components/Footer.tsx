@@ -26,6 +26,8 @@ export function Footer({ locale, dict }: { locale: Locale; dict: Dictionary }) {
               <li><Link href={`/${locale}`}>{nav.about}</Link></li>
               <li><Link href={`/${locale}/faq`}>{nav.faq}</Link></li>
               <li><Link href={`/${locale}/contact`}>{nav.contact}</Link></li>
+              <li><Link href={`/${locale}/privacy`}>Privacy</Link></li>
+              <li><Link href={`/${locale}/terms`}>Terms</Link></li>
               <li><a href={`mailto:${site.email}`}>{site.email}</a></li>
             </ul>
           </div>

@@ -41,6 +41,6 @@ client_secret*.json
 # typescript
 *.tsbuildinfo
 
-# generated native folders
-/ios
+# Xcode Cloud opens the checked-in iOS workspace. Generated dependencies and
+# local Xcode state remain excluded by ios/.gitignore.
 /android

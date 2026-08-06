@@ -1,3 +1,7 @@
+const WEBSITE_ORIGIN = 'https://www.screennudge.com';
 
-export const TERMS_URL = 'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/';
-export const PRIVACY_URL = 'https://pull.app/privacy';
+export const WEBSITE_URL = WEBSITE_ORIGIN;
+export const FAQ_URL = `${WEBSITE_ORIGIN}/faq`;
+export const SUPPORT_URL = `${WEBSITE_ORIGIN}/contact`;
+export const PRIVACY_URL = `${WEBSITE_ORIGIN}/privacy`;
+export const TERMS_URL = `${WEBSITE_ORIGIN}/terms`;
