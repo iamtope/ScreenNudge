@@ -14,7 +14,7 @@
 //
 // Required function secrets (supabase secrets set KEY=value):
 //   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY  — provided by the platform
-//   APPLE_BUNDLE_ID         — e.g. com.abassadamo.pull
+//   APPLE_BUNDLE_ID         — e.g. com.example.screennudge
 //   APPLE_APP_APPLE_ID      — numeric App Store app id (App Store Connect → App → General → Apple ID)
 //   APPLE_ROOT_CAS_BASE64   — comma-separated base64 DER of "Apple Root CA - G3"
 //                             (download from https://www.apple.com/certificateauthority/)

@@ -3,10 +3,10 @@
  * Generate the Apple "client secret" JWT for Supabase → Authentication → Apple → Secret.
  *
  * Usage (from pull/):
- *   APPLE_TEAM_ID=B4BT4H7239 \
- *   APPLE_KEY_ID=984J8SXRC7 \
- *   APPLE_CLIENT_ID=com.abassadamo.pull.signin \
- *   APPLE_P8_PATH=./AuthKey_984J8SXRC7.p8 \
+ *   APPLE_TEAM_ID=ABCDE12345 \
+ *   APPLE_KEY_ID=KEYID12345 \
+ *   APPLE_CLIENT_ID=com.example.screennudge.signin \
+ *   APPLE_P8_PATH=./AuthKey_KEYID12345.p8 \
  *   node scripts/generate-apple-client-secret.js
  *
  * APPLE_CLIENT_ID = your Services ID (not the bundle ID). Create one in Apple Developer
@@ -35,15 +35,15 @@ if (!teamId || !keyId || !clientId || !keyPath) {
   console.error(`
 Set these environment variables:
 
-  APPLE_TEAM_ID     Apple Developer Team ID (e.g. B4BT4H7239)
-  APPLE_KEY_ID      Key ID from the .p8 filename (e.g. 984J8SXRC7)
-  APPLE_CLIENT_ID   Services ID (e.g. com.abassadamo.pull.signin)
+  APPLE_TEAM_ID     Apple Developer Team ID (e.g. ABCDE12345)
+  APPLE_KEY_ID      Key ID from the .p8 filename (e.g. KEYID12345)
+  APPLE_CLIENT_ID   Services ID (e.g. com.example.screennudge.signin)
   APPLE_P8_PATH     Path to AuthKey_XXXX.p8
 
 Example:
-  APPLE_TEAM_ID=B4BT4H7239 APPLE_KEY_ID=984J8SXRC7 \\
-  APPLE_CLIENT_ID=com.abassadamo.pull.signin \\
-  APPLE_P8_PATH=./AuthKey_984J8SXRC7.p8 \\
+  APPLE_TEAM_ID=ABCDE12345 APPLE_KEY_ID=KEYID12345 \\
+  APPLE_CLIENT_ID=com.example.screennudge.signin \\
+  APPLE_P8_PATH=./AuthKey_KEYID12345.p8 \\
   node scripts/generate-apple-client-secret.js
 `);
   process.exit(1);
