@@ -7,7 +7,7 @@ Configured in App Store Connect under subscription group **`ScreenNudge_plus`**.
 | Monthly | `screenNudge_plus_monthly` | **`spm`** | 1 month |
 | Annual | `screenNudge_plus_yearly` | **`spy`** | 1 year |
 
-App bundle: **`com.abassadamo.pull`**
+App bundle: **`com.example.screennudge`**
 
 The **Product ID** column is what StoreKit and this app use. Reference names are labels only.
 

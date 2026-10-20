@@ -15,13 +15,13 @@ ScreenNudge uses **native** Sign in with Apple on iOS. Apple’s sheet works on 
 2. Toggle **Enable Apple provider** ON
 3. **Client IDs** (comma-separated) — must include your iOS bundle ID:
    ```
-   com.abassadamo.pull
+   com.example.screennudge
    ```
-   If you created a Services ID (e.g. `com.abassadamo.pull.auth`), you can add it here too, but the bundle ID is required for native sign-in.
+   If you created a Services ID (e.g. `com.example.screennudge.auth`), you can add it here too, but the bundle ID is required for native sign-in.
 4. **Secret Key** — a JWT signed with your Apple `.p8` key (see below). You need:
-   - Team ID: `B4BT4H7239`
-   - Key ID: `984J8SXRC7` (from `AuthKey_984J8SXRC7.p8`)
-   - **Services ID** for the JWT `sub` claim (create in Apple Developer if you don’t have one, e.g. `com.abassadamo.pull.signin`)
+   - Team ID: `ABCDE12345`
+   - Key ID: `KEYID12345` (from `AuthKey_KEYID12345.p8`)
+   - **Services ID** for the JWT `sub` claim (create in Apple Developer if you don’t have one, e.g. `com.example.screennudge.signin`)
 5. **Save**
 
 #### Generate the secret JWT from your `.p8`
@@ -30,10 +30,10 @@ From the `pull/` folder:
 
 ```bash
 npm install
-APPLE_TEAM_ID=B4BT4H7239 \
-APPLE_KEY_ID=984J8SXRC7 \
-APPLE_CLIENT_ID=com.abassadamo.pull.signin \
-APPLE_P8_PATH=./AuthKey_984J8SXRC7.p8 \
+APPLE_TEAM_ID=ABCDE12345 \
+APPLE_KEY_ID=KEYID12345 \
+APPLE_CLIENT_ID=com.example.screennudge.signin \
+APPLE_P8_PATH=./AuthKey_KEYID12345.p8 \
 npm run apple:secret
 ```
 
@@ -45,9 +45,9 @@ Copy the long printed string into Supabase → Apple → **Secret** (not the raw
 
 Apple Developer (one-time):
 
-- **App ID** `com.abassadamo.pull` → enable **Sign in with Apple**
+- **App ID** `com.example.screennudge` → enable **Sign in with Apple**
 - **Keys** → create a key with Sign in with Apple → download `.p8` (once)
-- **Services ID** + website URLs (`qzfowssjxbgbpmpb.supabase.co` + `https://qzfowssjxbgbpmpb.supabase.co/auth/v1/callback`) — mainly for web/OAuth; native still needs step 3–4 in Supabase above
+- **Services ID** + website URLs (`<project-ref>.supabase.co` + `https://<project-ref>.supabase.co/auth/v1/callback`) — mainly for web/OAuth; native still needs step 3–4 in Supabase above
 
 ### Google
 
@@ -61,7 +61,7 @@ Google uses a **browser OAuth flow through Supabase**. You configure Google once
 4. Create an **OAuth 2.0 Web client** (this is what Supabase uses)
 5. Under **Authorized redirect URIs**, add **exactly one** URI (copy from Supabase → Google provider — “Callback URL”):
    ```
-   https://qzfowssjxbgbpmpb.supabase.co/auth/v1/callback
+   https://<project-ref>.supabase.co/auth/v1/callback
    ```
    Rules:
    - Must be **https** (not `http`)
@@ -72,8 +72,8 @@ Google uses a **browser OAuth flow through Supabase**. You configure Google once
 
 Optional (not required for the current Supabase browser flow):
 
-- iOS client with bundle ID `com.abassadamo.pull`
-- Android client with package `com.abassadamo.pull` + SHA-1 fingerprint
+- iOS client with bundle ID `com.example.screennudge`
+- Android client with package `com.example.screennudge` + SHA-1 fingerprint
 
 You do **not** put `pull://…` in Google Cloud Console. Google redirects to Supabase; Supabase redirects back to the app.
 
@@ -123,7 +123,7 @@ The [`appstore-notifications`](./functions/appstore-notifications/index.ts) edge
 
 ```bash
 supabase secrets set \
-  APPLE_BUNDLE_ID=com.abassadamo.pull \
+  APPLE_BUNDLE_ID=com.example.screennudge \
   APPLE_APP_APPLE_ID=<numeric App Store app id> \
   APPLE_ROOT_CAS_BASE64=<base64 DER of "Apple Root CA - G3">   # from apple.com/certificateauthority
 supabase functions deploy appstore-notifications --no-verify-jwt
@@ -150,7 +150,7 @@ For circle / invite testing without a second device:
 2. Add to `pull/.env` (service role is **secret** — never commit a real key):
 
    ```
-   EXPO_PUBLIC_DEV_ACCOUNTS_PASSWORD=pull-local-dev
+   EXPO_PUBLIC_DEV_ACCOUNTS_PASSWORD=<choose-a-local-password>
    SUPABASE_SERVICE_ROLE_KEY=sb_secret_...   # API → service_role secret (NOT the anon/publishable key)
    ```
 
@@ -191,12 +191,12 @@ Google is rejecting the redirect URI Supabase sends. Fix **Google Cloud Console*
 2. Edit your **Web application** OAuth 2.0 client (the one whose ID is in Supabase)
 3. Under **Authorized redirect URIs**, ensure this line exists **exactly**:
    ```
-   https://qzfowssjxbgbpmpb.supabase.co/auth/v1/callback
+   https://<project-ref>.supabase.co/auth/v1/callback
    ```
 4. Remove wrong entries such as `pull://auth/callback`, `http://…`, or a different Supabase project URL
 5. **Save** — changes can take a minute to apply, then try sign-in again
 
-Confirm the project ref matches your `.env`: `EXPO_PUBLIC_SUPABASE_URL` should be `https://qzfowssjxbgbpmpb.supabase.co`.
+Confirm the project ref matches your `.env`: `EXPO_PUBLIC_SUPABASE_URL` should be `https://<project-ref>.supabase.co`.
 
 ### `provider is not enabled`
 
